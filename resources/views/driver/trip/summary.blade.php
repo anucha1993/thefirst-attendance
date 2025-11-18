@@ -172,7 +172,7 @@
                                 <small>{{ $record->scanned_at->format('H:i:s') }}</small>
                             </td>
                             <td class="text-end">
-                                <strong>{{ number_format($record->fare_amount ?? 0, 2) }}</strong>
+                                <strong>{{ number_format($trip->passenger_count > 0 ? $trip->total_fare / $trip->passenger_count : 0, 2) }}</strong>
                             </td>
                         </tr>
                     @empty
@@ -183,7 +183,7 @@
                         </tr>
                     @endforelse
                 </tbody>
-                @if($summary['total_passengers'] > 0)
+                @if($summary['passenger_count'] > 0)
                     <tfoot class="table-light">
                         <tr>
                             <th colspan="5" class="text-end">รวมทั้งหมด:</th>

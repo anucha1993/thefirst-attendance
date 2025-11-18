@@ -57,6 +57,14 @@ class Employee extends Model
     }
 
     /**
+     * Get full name attribute (accessor)
+     */
+    public function getFullNameAttribute()
+    {
+        return $this->first_name . ' ' . $this->last_name;
+    }
+
+    /**
      * Generate unique QR code token
      */
     public static function generateQrcodeToken()

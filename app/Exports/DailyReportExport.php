@@ -54,7 +54,7 @@ class DailyReportExport implements FromCollection, WithHeadings, WithMapping, Wi
 
     public function map($trip): array
     {
-        $passengers = $trip->attendanceRecords->where('status', 'completed');
+        $passengers = $trip->attendanceRecords; // Soft delete already filters out deleted records
         $passengerNames = $passengers->map(fn($record) => $record->employee->full_name)->join(', ');
         $employeeCodes = $passengers->map(fn($record) => $record->employee->employee_code)->join(', ');
         $departments = $passengers->map(fn($record) => $record->employee->department)->unique()->join(', ');

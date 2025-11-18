@@ -28,9 +28,9 @@ class RangeReportExport implements FromCollection, WithHeadings, WithMapping, Wi
     public function collection()
     {
         $query = Trip::with(['vehicle', 'route.pickupLocation', 'route.dropoffLocation', 'driver', 'attendanceRecords.employee'])
-            ->whereBetween('trip_date', [$this->dateFrom, $this->dateTo])
-            ->whereNotNull('ended_at')
-            ->orderBy('trip_date', 'desc')
+            ->whereDate('started_at', '>=', $this->dateFrom)
+            ->whereDate('started_at', '<=', $this->dateTo)
+            // Removed whereNotNull('ended_at') to include active trips
             ->orderBy('started_at', 'desc');
 
         // Apply filters
@@ -76,10 +76,10 @@ class RangeReportExport implements FromCollection, WithHeadings, WithMapping, Wi
     public function map($trip): array
     {
         $startedAt = Carbon::parse($trip->started_at);
-        $endedAt = Carbon::parse($trip->ended_at);
-        $duration = $startedAt->diffInMinutes($endedAt);
+        $endedAt = $trip->ended_at ? Carbon::parse($trip->ended_at) : null;
+        $duration = $endedAt ? $startedAt->diffInMinutes($endedAt) : '-';
         
-        $passengers = $trip->attendanceRecords->where('status', 'completed');
+        $passengers = $trip->attendanceRecords; // Soft delete already filters
         $passengerCount = $passengers->count();
         $passengerNames = $passengers->map(fn($record) => $record->employee->full_name)->join(', ');
         $employeeCodes = $passengers->map(fn($record) => $record->employee->employee_code)->join(', ');
@@ -92,9 +92,9 @@ class RangeReportExport implements FromCollection, WithHeadings, WithMapping, Wi
 
         return [
             $trip->id,
-            Carbon::parse($trip->trip_date)->format('d/m/Y'),
+            $startedAt->format('d/m/Y'),
             $startedAt->format('H:i'),
-            $endedAt->format('H:i'),
+            $endedAt ? $endedAt->format('H:i') : 'กำลังดำเนินการ',
             $duration,
             $trip->vehicle ? $trip->vehicle->license_plate : '-',
             $trip->vehicle ? $trip->vehicle->vehicle_model : '-',

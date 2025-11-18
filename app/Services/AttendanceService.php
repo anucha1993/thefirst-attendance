@@ -53,7 +53,11 @@ class AttendanceService
             ]);
 
             // Update trip passenger count
-            $trip->increment('passenger_count');
+            $trip->passenger_count = $trip->passenger_count + 1;
+            $trip->save();
+
+            // Recalculate fare for active trip
+            $this->recalculateTripFare($trip);
 
             // Create audit log
             AttendanceAudit::create([
@@ -97,7 +101,11 @@ class AttendanceService
             $oldData = $record->getDetail();
 
             // Decrement passenger count
-            $trip->decrement('passenger_count');
+            $trip->passenger_count = $trip->passenger_count - 1;
+            $trip->save();
+
+            // Recalculate fare
+            $this->recalculateTripFare($trip);
 
             // Create audit log
             AttendanceAudit::create([
@@ -174,5 +182,58 @@ class AttendanceService
                 'scanned_at' => $r->scanned_at->format('H:i:s'),
             ])
             ->toArray();
+    }
+
+    /**
+     * Recalculate trip fare based on current passenger count
+     *
+     * @param Trip $trip
+     * @return void
+     */
+    private function recalculateTripFare(Trip $trip)
+    {
+        $fareCalcService = new FareCalculationService();
+        
+        // Get applicable fare rule
+        $fareRule = $trip->route->fareRules()
+            ->where('is_active', true)
+            ->where('effective_from', '<=', now()->toDateString())
+            ->where(function ($q) {
+                $q->whereNull('effective_until')
+                    ->orWhere('effective_until', '>=', now()->toDateString());
+            })
+            ->first();
+
+        if (!$fareRule) {
+            return;
+        }
+
+        // Calculate fare
+        $tripData = [
+            'passenger_count' => $trip->passenger_count,
+            'distance_km' => $trip->route->distance_km,
+        ];
+
+        $totalFare = $fareRule->calculateFare($tripData);
+        
+        // Update trip fare
+        $trip->total_fare = $totalFare;
+        $trip->save();
+
+        // Update or create FareCalculation record
+        \App\Models\FareCalculation::updateOrCreate(
+            ['trip_id' => $trip->id],
+            [
+                'fare_rule_id' => $fareRule->id,
+                'passenger_count' => $trip->passenger_count,
+                'unit_fare' => $fareRule->base_fare ?? 0,
+                'total_fare' => $totalFare,
+                'calculation_details' => [
+                    'rule_type' => $fareRule->type,
+                    'calculation_mode' => $fareRule->calculation_mode,
+                    'distance_km' => $trip->route->distance_km,
+                ],
+            ]
+        );
     }
 }

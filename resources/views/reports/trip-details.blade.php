@@ -136,14 +136,10 @@
                                 <small>{{ $record->scanned_at->format('H:i:s') }}</small>
                             </td>
                             <td class="text-end">
-                                <strong>{{ number_format($record->fare_amount ?? 0, 2) }}</strong>
+                                <strong>{{ number_format($trip->passenger_count > 0 ? $trip->total_fare / $trip->passenger_count : 0, 2) }}</strong>
                             </td>
                             <td class="text-center">
-                                @if($record->is_cancelled)
-                                    <span class="badge bg-danger">ยกเลิก</span>
-                                @else
-                                    <span class="badge bg-success">ปกติ</span>
-                                @endif
+                                <span class="badge bg-success">ปกติ</span>
                             </td>
                         </tr>
                     @empty
@@ -159,7 +155,7 @@
                         <tr>
                             <th colspan="6" class="text-end">รวมทั้งหมด:</th>
                             <th class="text-end">
-                                <h5 class="mb-0 text-success">{{ number_format($records->sum('fare_amount'), 2) }}</h5>
+                                <h5 class="mb-0 text-success">{{ number_format($trip->total_fare ?? 0, 2) }}</h5>
                             </th>
                             <th></th>
                         </tr>

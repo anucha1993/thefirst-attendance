@@ -69,13 +69,13 @@ class FareCalculationService
 
         if (isset($filters['date_from'])) {
             $query->whereHas('trip', fn($q) => 
-                $q->where('started_at', '>=', $filters['date_from'])
+                $q->whereDate('started_at', '>=', $filters['date_from'])
             );
         }
 
         if (isset($filters['date_to'])) {
             $query->whereHas('trip', fn($q) => 
-                $q->where('started_at', '<=', $filters['date_to'])
+                $q->whereDate('started_at', '<=', $filters['date_to'])
             );
         }
 
