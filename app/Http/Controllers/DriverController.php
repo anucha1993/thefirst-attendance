@@ -143,7 +143,8 @@ class DriverController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        $records = $this->attendanceService->getRecentAttendance($trip, 10);
+        // ดึงทั้งหมดไม่จำกัด
+        $records = $this->attendanceService->getRecentAttendance($trip);
         return response()->json([
             'records' => $records,
             'passenger_count' => $trip->passenger_count,

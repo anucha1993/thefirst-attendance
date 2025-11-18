@@ -297,6 +297,7 @@
     let cameras = [];
     let currentCameraIndex = 0;
     let cameraPermissionGranted = false;
+    let pendingRecord = null;
 
     // Request camera permission manually
     async function requestCameraPermission() {
@@ -462,15 +463,53 @@
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                showScanResult(`✓ ${data.data.employee_name}`, 'success');
-                updateAttendanceList();
+                // แสดงปุ่มยืนยัน
+                pendingRecord = data.data;
+                showConfirmationDialog(data.data);
+            } else if (data.type === 'duplicate') {
+                // สแกนซ้ำ - แสดง warning แบบเดิม ไม่มีปุ่มยืนยัน
+                showScanResult(data.message, 'warning');
             } else {
-                showScanResult(data.message, data.type === 'duplicate' ? 'warning' : 'error');
+                showScanResult(data.message, 'error');
             }
         })
         .catch(err => {
             showScanResult('เกิดข้อผิดพลาด: ' + err.message, 'error');
         });
+    }
+
+    function showConfirmationDialog(employeeData) {
+        const confirmHtml = `
+            <div class="scan-result success">
+                <h4 class="mb-3">✓ สแกนสำเร็จ</h4>
+                <div class="mb-3">
+                    <strong style="font-size: 1.2rem;">${employeeData.employee_name}</strong><br>
+                    <small>รหัส: ${employeeData.employee_code}</small>
+                </div>
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-success btn-lg" onclick="confirmScan()">
+                        <i class="fas fa-check me-2"></i>ยืนยัน
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="cancelScan()">
+                        <i class="fas fa-times me-2"></i>ยกเลิก
+                    </button>
+                </div>
+            </div>
+        `;
+        document.getElementById('scanResult').innerHTML = confirmHtml;
+    }
+
+    function confirmScan() {
+        if (pendingRecord) {
+            showScanResult(`✓ บันทึก ${pendingRecord.employee_name} แล้ว`, 'success');
+            updateAttendanceList();
+            pendingRecord = null;
+        }
+    }
+
+    function cancelScan() {
+        pendingRecord = null;
+        document.getElementById('scanResult').innerHTML = '';
     }
 
     function showScanResult(message, type) {
@@ -494,9 +533,10 @@
         fetch(`{{ route('driver.trip.recent-records', $trip) }}`)
             .then(res => res.json())
             .then(data => {
-                const count = data.passenger_count;
+                const count = data.passenger_count || 0;
                 const capacity = {{ $trip->vehicle->capacity }};
                 
+                // Update counter
                 document.getElementById('passengerCount').innerText = count;
                 
                 // Update progress bar
@@ -509,18 +549,26 @@
                 progressBar.className = 'progress-bar ' + 
                     (percentage >= 90 ? 'bg-danger' : (percentage >= 70 ? 'bg-warning' : 'bg-success'));
                 
-                const listHtml = data.records.map(r =>
-                    `<div class="attendance-item">
-                        <div class="fw-bold fs-5">${r.employee_code}</div>
-                        <div>${r.employee_name}</div>
-                        <small class="text-muted"><i class="fas fa-clock me-1"></i>${r.scanned_at}</small>
-                    </div>`
-                ).join('');
-                document.getElementById('attendanceList').innerHTML = listHtml || 
-                    `<div class="text-center py-5 text-muted">
-                        <i class="fas fa-inbox fa-3x mb-3"></i>
-                        <p>ยังไม่มีการสแกน</p>
-                    </div>`;
+                // Update list - แสดงทั้งหมด
+                if (data.records && data.records.length > 0) {
+                    const listHtml = data.records.map(r =>
+                        `<div class="attendance-item">
+                            <div class="fw-bold fs-5">${r.employee_code}</div>
+                            <div>${r.employee_name}</div>
+                            <small class="text-muted"><i class="fas fa-clock me-1"></i>${r.scanned_at}</small>
+                        </div>`
+                    ).join('');
+                    document.getElementById('attendanceList').innerHTML = listHtml;
+                } else {
+                    document.getElementById('attendanceList').innerHTML = 
+                        `<div class="text-center py-5 text-muted">
+                            <i class="fas fa-inbox fa-3x mb-3"></i>
+                            <p>ยังไม่มีการสแกน</p>
+                        </div>`;
+                }
+            })
+            .catch(err => {
+                console.error('Update list error:', err);
             });
     }
 

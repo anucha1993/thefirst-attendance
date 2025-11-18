@@ -164,16 +164,20 @@ class AttendanceService
      * Get last N attendance records for a trip (for real-time display)
      *
      * @param Trip $trip
-     * @param int $limit
+    /**
      * @return array
      */
-    public function getRecentAttendance(Trip $trip, int $limit = 10)
+    public function getRecentAttendance(Trip $trip, int $limit = null)
     {
-        return $trip->attendanceRecords()
+        $query = $trip->attendanceRecords()
             ->with('employee')
-            ->latest('scanned_at')
-            ->limit($limit)
-            ->get()
+            ->latest('scanned_at');
+        
+        if ($limit !== null) {
+            $query->limit($limit);
+        }
+        
+        return $query->get()
             ->reverse()
             ->map(fn($r) => [
                 'id' => $r->id,
