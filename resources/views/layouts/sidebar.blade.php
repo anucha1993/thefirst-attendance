@@ -68,6 +68,9 @@
             <a href="{{ route('admin.fare-rules.index') }}" class="nav-link {{ request()->routeIs('admin.fare-rules.*') ? 'active' : '' }}">
                 <i class="fas fa-coins"></i> Fare Rules
             </a>
+            <a href="{{ route('admin.users.index') }}" class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+                <i class="fas fa-users-cog"></i> Users
+            </a>
 
             <div class="sidebar-section-title">Reports</div>
             <a href="{{ route('reports.daily') }}" class="nav-link {{ request()->routeIs('reports.daily') ? 'active' : '' }}">

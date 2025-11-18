@@ -275,6 +275,7 @@
 <script>
     const tripId = {{ $trip->id }};
     let codeReader;
+    let selectedDeviceId;
 
     // Initialize camera scanning
     async function initCamera() {
@@ -282,18 +283,41 @@
             codeReader = new ZXing.BrowserMultiFormatReader();
             const videoElement = document.getElementById('cameraPreview');
 
-            const result = await codeReader.decodeOnceFromVideoDevice(undefined, videoElement);
-            if (result) {
-                processQrcodeToken(result.text);
-                // Re-scan after processing
-                initCamera();
+            // Request camera permission first
+            await navigator.mediaDevices.getUserMedia({ video: true });
+
+            // Get available video devices
+            const videoInputDevices = await codeReader.listVideoInputDevices();
+            console.log('Available cameras:', videoInputDevices);
+
+            // Use selected device or first device
+            if (!selectedDeviceId && videoInputDevices.length > 0) {
+                selectedDeviceId = videoInputDevices[0].deviceId;
             }
+
+            // Start decoding from video device
+            codeReader.decodeFromVideoDevice(selectedDeviceId, videoElement, (result, err) => {
+                if (result) {
+                    console.log('Decoded:', result.text);
+                    processQrcodeToken(result.text);
+                }
+                if (err && !(err instanceof ZXing.NotFoundException)) {
+                    console.error('Decode error:', err);
+                }
+            });
+
+            showScanResult('📷 กล้องพร้อมใช้งาน', 'success');
         } catch (err) {
+            console.error('Camera init error:', err);
             if (err.name === 'NotAllowedError') {
-                showScanResult('ต้องอนุญาติการเข้าถึงกล้อง', 'error');
+                showScanResult('❌ กรุณาอนุญาตการเข้าถึงกล้อง', 'error');
+            } else if (err.name === 'NotFoundError') {
+                showScanResult('❌ ไม่พบกล้อง', 'error');
+            } else if (err.name === 'NotReadableError') {
+                showScanResult('❌ กล้องถูกใช้งานอยู่', 'error');
+            } else {
+                showScanResult('❌ เกิดข้อผิดพลาด: ' + err.message, 'error');
             }
-            // Retry scanning
-            setTimeout(initCamera, 1000);
         }
     }
 
@@ -334,10 +358,20 @@
 
     function showScanResult(message, type) {
         const resultDiv = document.getElementById('scanResult');
-        resultDiv.innerHTML = `<div class="scan-result ${type}">${message}</div>`;
+        const typeClass = type === 'warning' ? 'error' : type; // Map warning to error styling
+        resultDiv.innerHTML = `<div class="scan-result ${typeClass}">${message}</div>`;
         setTimeout(() => {
             resultDiv.innerHTML = '';
         }, 3000);
+        
+        // Play sound for success
+        if (type === 'success') {
+            // Beep sound (optional)
+            try {
+                const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBA==');
+                audio.play().catch(() => {});
+            } catch(e) {}
+        }
     }
 
     function updateAttendanceList() {
@@ -379,8 +413,16 @@
         if (codeReader) {
             codeReader.reset();
         }
-        // Restart with different camera
-        initCamera();
+        
+        // Get next camera
+        codeReader.listVideoInputDevices().then(videoInputDevices => {
+            const currentIndex = videoInputDevices.findIndex(d => d.deviceId === selectedDeviceId);
+            const nextIndex = (currentIndex + 1) % videoInputDevices.length;
+            selectedDeviceId = videoInputDevices[nextIndex].deviceId;
+            
+            showScanResult('🔄 กำลังเปลี่ยนกล้อง...', 'success');
+            initCamera();
+        });
     }
 
     function cancelLastRecord() {

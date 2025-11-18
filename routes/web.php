@@ -71,6 +71,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/fare-rules/{fareRule}/edit', [AdminController::class, 'fareRulesEdit'])->name('fare-rules.edit');
         Route::put('/fare-rules/{fareRule}', [AdminController::class, 'fareRulesUpdate'])->name('fare-rules.update');
         Route::delete('/fare-rules/{fareRule}', [AdminController::class, 'fareRulesDestroy'])->name('fare-rules.destroy');
+
+        // Users management
+        Route::get('/users', [AdminController::class, 'usersIndex'])->name('users.index');
+        Route::get('/users/create', [AdminController::class, 'usersCreate'])->name('users.create');
+        Route::post('/users', [AdminController::class, 'usersStore'])->name('users.store');
+        Route::get('/users/{user}/edit', [AdminController::class, 'usersEdit'])->name('users.edit');
+        Route::put('/users/{user}', [AdminController::class, 'usersUpdate'])->name('users.update');
+        Route::delete('/users/{user}', [AdminController::class, 'usersDestroy'])->name('users.destroy');
     });
 
     // ============ Driver Routes ============

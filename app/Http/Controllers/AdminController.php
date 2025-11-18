@@ -8,8 +8,10 @@ use App\Models\Vehicle;
 use App\Models\Employee;
 use App\Models\FareRule;
 use App\Models\DistanceFareBracket;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class AdminController extends Controller
 {
@@ -381,5 +383,79 @@ class AdminController extends Controller
         $fareRule->delete();
         return redirect()->route('admin.fare-rules.index')
             ->with('success', 'ลบกฎค่าโดยสารเรียบร้อย');
+    }
+
+    /**
+     * Users management
+     */
+    public function usersIndex()
+    {
+        $users = User::orderBy('created_at', 'desc')->paginate(20);
+        return view('admin.users.index', compact('users'));
+    }
+
+    public function usersCreate()
+    {
+        return view('admin.users.create');
+    }
+
+    public function usersStore(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:8|confirmed',
+            'role' => 'required|in:admin,driver,supervisor,employee',
+            'is_active' => 'boolean',
+        ]);
+
+        $validated['password'] = Hash::make($validated['password']);
+        $validated['is_active'] = $request->has('is_active');
+
+        User::create($validated);
+
+        return redirect()->route('admin.users.index')
+            ->with('success', 'เพิ่มผู้ใช้เรียบร้อย');
+    }
+
+    public function usersEdit(User $user)
+    {
+        return view('admin.users.edit', compact('user'));
+    }
+
+    public function usersUpdate(Request $request, User $user)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'password' => 'nullable|string|min:8|confirmed',
+            'role' => 'required|in:admin,driver,supervisor,employee',
+            'is_active' => 'boolean',
+        ]);
+
+        if (!empty($validated['password'])) {
+            $validated['password'] = Hash::make($validated['password']);
+        } else {
+            unset($validated['password']);
+        }
+
+        $validated['is_active'] = $request->has('is_active');
+
+        $user->update($validated);
+
+        return redirect()->route('admin.users.index')
+            ->with('success', 'แก้ไขผู้ใช้เรียบร้อย');
+    }
+
+    public function usersDestroy(User $user)
+    {
+        if ($user->id === auth()->id()) {
+            return redirect()->route('admin.users.index')
+                ->with('error', 'ไม่สามารถลบผู้ใช้ที่กำลังใช้งานอยู่');
+        }
+
+        $user->delete();
+        return redirect()->route('admin.users.index')
+            ->with('success', 'ลบผู้ใช้เรียบร้อย');
     }
 }
