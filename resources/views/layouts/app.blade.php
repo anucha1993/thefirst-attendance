@@ -95,7 +95,13 @@
             }
 
             .main-content {
-                padding: 30px;
+                padding: 15px;
+            }
+
+            @media (min-width: 768px) {
+                .main-content {
+                    padding: 30px;
+                }
             }
 
             .page-title {
@@ -103,6 +109,30 @@
                 font-weight: 700;
                 color: #2c3e50;
                 margin-bottom: 20px;
+            }
+
+            /* Mobile Sidebar Toggle */
+            .mobile-menu-toggle {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                z-index: 1000;
+                width: 56px;
+                height: 56px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+                border: none;
+                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.5rem;
+            }
+
+            @media (min-width: 768px) {
+                .mobile-menu-toggle {
+                    display: none;
+                }
             }
 
             .breadcrumb {
@@ -148,13 +178,13 @@
 
         <div class="container-fluid">
             <div class="row">
-                <!-- Sidebar Navigation -->
-                <nav class="col-md-2 d-md-block sidebar">
+                <!-- Sidebar Navigation - Hidden on Mobile -->
+                <nav class="col-md-2 d-none d-md-block sidebar">
                     @include('layouts.sidebar')
                 </nav>
 
                 <!-- Main Content -->
-                <div class="col-md-10 ms-sm-auto main-content">
+                <div class="col-12 col-md-10 ms-sm-auto main-content">
                     <!-- Page Heading -->
                     @isset($header)
                         <header class="mb-4">
@@ -167,6 +197,22 @@
                         @yield('content')
                     </main>
                 </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu Toggle (Floating Button) -->
+        <button class="mobile-menu-toggle d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <!-- Mobile Sidebar (Offcanvas) -->
+        <div class="offcanvas offcanvas-start d-md-none" tabindex="-1" id="mobileSidebar">
+            <div class="offcanvas-header">
+                <h5 class="offcanvas-title"><i class="fas fa-bars me-2"></i>เมนู</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+            </div>
+            <div class="offcanvas-body p-0">
+                @include('layouts.sidebar')
             </div>
         </div>
 

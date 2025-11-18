@@ -155,10 +155,12 @@ class FareCalculationService
                 $summary['trips_by_vehicle'][$vehicleKey] = [
                     'vehicle' => $trip->vehicle,
                     'trips' => [],
+                    'trip_count' => 0,
                     'passenger_count' => 0,
                     'total_fare' => 0,
                 ];
             }
+            $summary['trips_by_vehicle'][$vehicleKey]['trip_count']++;
             $summary['trips_by_vehicle'][$vehicleKey]['passenger_count'] += $trip->passenger_count;
             $summary['trips_by_vehicle'][$vehicleKey]['total_fare'] += $trip->total_fare ?? 0;
             $summary['trips_by_vehicle'][$vehicleKey]['trips'][] = $trip;
@@ -169,10 +171,12 @@ class FareCalculationService
                 $summary['trips_by_route'][$routeKey] = [
                     'route' => $trip->route,
                     'trips' => [],
+                    'trip_count' => 0,
                     'passenger_count' => 0,
                     'total_fare' => 0,
                 ];
             }
+            $summary['trips_by_route'][$routeKey]['trip_count']++;
             $summary['trips_by_route'][$routeKey]['passenger_count'] += $trip->passenger_count;
             $summary['trips_by_route'][$routeKey]['total_fare'] += $trip->total_fare ?? 0;
             $summary['trips_by_route'][$routeKey]['trips'][] = $trip;
