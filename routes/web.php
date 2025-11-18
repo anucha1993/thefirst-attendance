@@ -91,6 +91,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/trip/{trip}/confirm-scan', [DriverController::class, 'confirmAttendanceScan'])->name('trip.confirm-scan');
         Route::get('/trip/{trip}/records', [DriverController::class, 'getRecentRecords'])->name('trip.recent-records');
         Route::post('/trip/{trip}/cancel-record', [DriverController::class, 'cancelLastRecord'])->name('trip.cancel-record');
+        Route::post('/trip/{trip}/cancel-specific-record', [DriverController::class, 'cancelSpecificRecord'])->name('trip.cancel-specific-record');
         Route::post('/trip/{trip}/complete', [DriverController::class, 'completeTrip'])->name('trip.complete');
         Route::get('/trip/{trip}/summary', [DriverController::class, 'tripSummary'])->name('trip-summary');
         Route::get('/today-trips', [DriverController::class, 'todayTrips'])->name('today-trips');

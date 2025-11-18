@@ -278,6 +278,35 @@
     </button>
 </div>
 
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmScanModal" tabindex="-1" aria-labelledby="confirmScanModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="confirmScanModalLabel">
+                    <i class="fas fa-check-circle me-2"></i>สแกนสำเร็จ
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <div class="mb-3">
+                    <i class="fas fa-user-circle fa-4x text-success"></i>
+                </div>
+                <h4 class="mb-2" id="modalEmployeeName"></h4>
+                <p class="text-muted mb-0">รหัส: <span id="modalEmployeeCode"></span></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="cancelScan()">
+                    <i class="fas fa-times me-2"></i>ยกเลิก
+                </button>
+                <button type="button" class="btn btn-success btn-lg" onclick="confirmScan()">
+                    <i class="fas fa-check me-2"></i>ยืนยัน
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <form id="completeTripForm" action="{{ route('driver.trip.complete', $trip) }}" method="POST" style="display: none;">
     @csrf
     <input type="hidden" name="notes" value="">
@@ -479,24 +508,19 @@
     }
 
     function showConfirmationDialog(employeeData) {
-        const confirmHtml = `
-            <div class="scan-result success">
-                <h4 class="mb-3">✓ สแกนสำเร็จ</h4>
-                <div class="mb-3">
-                    <strong style="font-size: 1.2rem;">${employeeData.employee_name}</strong><br>
-                    <small>รหัส: ${employeeData.employee_code}</small>
-                </div>
-                <div class="d-grid gap-2">
-                    <button type="button" class="btn btn-success btn-lg" onclick="confirmScan()">
-                        <i class="fas fa-check me-2"></i>ยืนยัน
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary" onclick="cancelScan()">
-                        <i class="fas fa-times me-2"></i>ยกเลิก
-                    </button>
-                </div>
-            </div>
-        `;
-        document.getElementById('scanResult').innerHTML = confirmHtml;
+        // เติมข้อมูลใน modal
+        document.getElementById('modalEmployeeName').textContent = employeeData.employee_name;
+        document.getElementById('modalEmployeeCode').textContent = employeeData.employee_code;
+        
+        // เปิด modal
+        const modal = new bootstrap.Modal(document.getElementById('confirmScanModal'));
+        modal.show();
+        
+        // เล่นเสียง
+        try {
+            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBA==');
+            audio.play().catch(() => {});
+        } catch(e) {}
     }
 
     function confirmScan() {
@@ -518,6 +542,10 @@
         .then(res => res.json())
         .then(data => {
             if (data.success) {
+                // ปิด modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('confirmScanModal'));
+                modal.hide();
+                
                 // แสดงข้อความสำเร็จพร้อมปุ่มยกเลิก
                 const successHtml = `
                     <div class="scan-result success">
@@ -545,6 +573,12 @@
     }
 
     function cancelScan() {
+        // ปิด modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('confirmScanModal'));
+        if (modal) {
+            modal.hide();
+        }
+        
         if (pendingRecord) {
             showScanResult('ยกเลิกการสแกนของ ' + pendingRecord.employee_name, 'warning');
         }
@@ -595,10 +629,16 @@
                 // Update list - แสดงทั้งหมด
                 if (data.records && data.records.length > 0) {
                     const listHtml = data.records.map(r =>
-                        `<div class="attendance-item">
-                            <div class="fw-bold fs-5">${r.employee_code}</div>
-                            <div>${r.employee_name}</div>
-                            <small class="text-muted"><i class="fas fa-clock me-1"></i>${r.scanned_at}</small>
+                        `<div class="attendance-item" style="display: flex; align-items: center; justify-content: space-between;">
+                            <div style="flex: 1;">
+                                <div class="fw-bold fs-5">${r.employee_code}</div>
+                                <div>${r.employee_name}</div>
+                                <small class="text-muted"><i class="fas fa-clock me-1"></i>${r.scanned_at}</small>
+                            </div>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="cancelSpecificRecord(${r.id}, '${r.employee_name}')"
+                                style="white-space: nowrap;">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </div>`
                     ).join('');
                     document.getElementById('attendanceList').innerHTML = listHtml;
@@ -678,6 +718,36 @@
         })
         .catch(err => {
             showScanResult('เกิดข้อผิดพลาด', 'error');
+        });
+    }
+
+    function cancelSpecificRecord(recordId, employeeName) {
+        if (!confirm(`ต้องการยกเลิกรายการของ ${employeeName}?`)) {
+            return;
+        }
+
+        fetch(`{{ url('driver/trip/' . $trip->id . '/cancel-specific-record') }}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                record_id: recordId,
+                reason: 'ยกเลิกจากรายชื่อ'
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showScanResult(`✓ ยกเลิก ${employeeName} เรียบร้อย`, 'warning');
+                updateAttendanceList();
+            } else {
+                showScanResult(data.message || 'ไม่สามารถยกเลิกได้', 'error');
+            }
+        })
+        .catch(err => {
+            showScanResult('เกิดข้อผิดพลาด: ' + err.message, 'error');
         });
     }
 

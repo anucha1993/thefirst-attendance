@@ -6,6 +6,7 @@ use App\Models\Trip;
 use App\Models\Vehicle;
 use App\Models\Route;
 use App\Models\Employee;
+use App\Models\AttendanceRecord;
 use App\Services\AttendanceService;
 use App\Services\TripService;
 use Illuminate\Http\Request;
@@ -212,6 +213,39 @@ class DriverController extends Controller
         );
 
         return back()->with('success', 'ยกเลิกรายการสำเร็จ');
+    }
+
+    /**
+     * Cancel specific attendance record
+     */
+    public function cancelSpecificRecord(Request $request, Trip $trip)
+    {
+        if ($trip->driver_id !== auth()->id()) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'record_id' => 'required|integer',
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        $record = AttendanceRecord::where('trip_id', $trip->id)
+            ->where('id', $validated['record_id'])
+            ->first();
+
+        if (!$record) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ไม่พบรายการที่ต้องการยกเลิก'
+            ], 404);
+        }
+
+        $result = $this->attendanceService->cancelAttendanceRecord(
+            $record,
+            $validated['reason'] ?? 'ยกเลิกจากรายชื่อ'
+        );
+
+        return response()->json($result);
     }
 
     /**
