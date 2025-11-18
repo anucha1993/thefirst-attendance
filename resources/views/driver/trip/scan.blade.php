@@ -550,9 +550,19 @@
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                // ปิด modal
+                // ปิด modal และลบ backdrop (แก้ปัญหาจอดำบนมือถือ)
                 const modal = bootstrap.Modal.getInstance(document.getElementById('confirmScanModal'));
-                modal.hide();
+                if (modal) {
+                    modal.hide();
+                }
+                
+                // ลบ backdrop และ class ที่เหลือค้าง
+                setTimeout(() => {
+                    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                    document.body.classList.remove('modal-open');
+                    document.body.style.overflow = '';
+                    document.body.style.paddingRight = '';
+                }, 200);
                 
                 // แสดงข้อความสำเร็จพร้อมปุ่มยกเลิก
                 const successHtml = `
@@ -581,11 +591,19 @@
     }
 
     function cancelScan() {
-        // ปิด modal
+        // ปิด modal และลบ backdrop (แก้ปัญหาจอดำบนมือถือ)
         const modal = bootstrap.Modal.getInstance(document.getElementById('confirmScanModal'));
         if (modal) {
             modal.hide();
         }
+        
+        // ลบ backdrop และ class ที่เหลือค้าง
+        setTimeout(() => {
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        }, 200);
         
         if (pendingRecord) {
             showScanResult('ยกเลิกการสแกนของ ' + pendingRecord.employee_name, 'warning');
