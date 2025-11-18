@@ -8,6 +8,7 @@ use App\Models\AttendanceAudit;
 use App\Services\FareCalculationService;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Mpdf\Mpdf;
 
 class ReportController extends Controller
 {
@@ -188,10 +189,19 @@ class ReportController extends Controller
     {
         $date = $request->input('date', today()->toDateString());
 
-        $summary = $this->fareCalcService->getDailySummary($date);
-
-        $pdf = \PDF::loadView('reports.daily-pdf', compact('date', 'summary'));
-        return $pdf->download('daily-report-' . $date . '.pdf');
+        $html = view('reports.daily-pdf', compact('date'))->render();
+        
+        $mpdf = new Mpdf([
+            'mode' => 'utf-8',
+            'format' => 'A4-L', // Landscape for more columns
+            'margin_left' => 10,
+            'margin_right' => 10,
+            'margin_top' => 10,
+            'margin_bottom' => 10,
+        ]);
+        
+        $mpdf->WriteHTML($html);
+        return $mpdf->Output('daily-report-' . $date . '.pdf', 'D');
     }
 
     /**
