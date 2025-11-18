@@ -500,16 +500,55 @@
     }
 
     function confirmScan() {
-        if (pendingRecord) {
-            showScanResult(`✓ บันทึก ${pendingRecord.employee_name} แล้ว`, 'success');
-            updateAttendanceList();
+        if (!pendingRecord) return;
+
+        // เรียก API ยืนยันการสแกน
+        fetch(`{{ route('driver.trip.confirm-scan', $trip) }}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                employee_id: pendingRecord.employee_id,
+                latitude: null,
+                longitude: null
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                // แสดงข้อความสำเร็จพร้อมปุ่มยกเลิก
+                const successHtml = `
+                    <div class="scan-result success">
+                        <h4 class="mb-3">✓ บันทึก ${pendingRecord.employee_name} แล้ว</h4>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="cancelLastRecord()">
+                            <i class="fas fa-undo me-2"></i>ยกเลิกรายการนี้
+                        </button>
+                    </div>
+                `;
+                document.getElementById('scanResult').innerHTML = successHtml;
+                setTimeout(() => {
+                    document.getElementById('scanResult').innerHTML = '';
+                }, 5000);
+                
+                updateAttendanceList();
+            } else {
+                showScanResult(data.message || 'เกิดข้อผิดพลาด', 'error');
+            }
             pendingRecord = null;
-        }
+        })
+        .catch(err => {
+            showScanResult('เกิดข้อผิดพลาด: ' + err.message, 'error');
+            pendingRecord = null;
+        });
     }
 
     function cancelScan() {
+        if (pendingRecord) {
+            showScanResult('ยกเลิกการสแกนของ ' + pendingRecord.employee_name, 'warning');
+        }
         pendingRecord = null;
-        document.getElementById('scanResult').innerHTML = '';
     }
 
     function showScanResult(message, type) {
@@ -533,8 +572,12 @@
         fetch(`{{ route('driver.trip.recent-records', $trip) }}`)
             .then(res => res.json())
             .then(data => {
-                const count = data.passenger_count || 0;
+                console.log('API Response:', data); // Debug
+                
+                const count = data.passenger_count !== undefined ? data.passenger_count : 0;
                 const capacity = {{ $trip->vehicle->capacity }};
+                
+                console.log('Passenger count:', count); // Debug
                 
                 // Update counter
                 document.getElementById('passengerCount').innerText = count;
@@ -611,9 +654,8 @@
     }
 
     function cancelLastRecord() {
-        if (!confirm('ต้องการยกเลิกรายการสแกนล่าสุด?')) {
-            return;
-        }
+        // ลบ confirm dialog เพราะเพิ่งยืนยันเสร็จ
+        document.getElementById('scanResult').innerHTML = '<div class="scan-result">กำลังยกเลิก...</div>';
 
         fetch(`{{ route('driver.trip.cancel-record', $trip) }}`, {
             method: 'POST',
@@ -628,7 +670,7 @@
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                showScanResult('✓ ยกเลิกเรียบร้อย', 'success');
+                showScanResult('✓ ยกเลิกรายการล่าสุดเรียบร้อย', 'warning');
                 updateAttendanceList();
             } else {
                 showScanResult(data.message || 'ไม่สามารถยกเลิกได้', 'error');

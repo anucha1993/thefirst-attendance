@@ -88,6 +88,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/trip/start', [DriverController::class, 'startTrip'])->name('trip.start');
         Route::get('/trip/{trip}/scan', [DriverController::class, 'scanScreen'])->name('trip.scan');
         Route::post('/trip/{trip}/scan', [DriverController::class, 'processQrcodeScan'])->name('trip.scan-process');
+        Route::post('/trip/{trip}/confirm-scan', [DriverController::class, 'confirmAttendanceScan'])->name('trip.confirm-scan');
         Route::get('/trip/{trip}/records', [DriverController::class, 'getRecentRecords'])->name('trip.recent-records');
         Route::post('/trip/{trip}/cancel-record', [DriverController::class, 'cancelLastRecord'])->name('trip.cancel-record');
         Route::post('/trip/{trip}/complete', [DriverController::class, 'completeTrip'])->name('trip.complete');

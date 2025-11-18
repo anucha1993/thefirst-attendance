@@ -86,6 +86,125 @@ class AttendanceService
     }
 
     /**
+     * Validate QR code scan without saving to database
+     *
+     * @param Trip $trip
+     * @param string $qrcodeToken
+     * @return array
+     */
+    public function validateQrcodeScan(Trip $trip, string $qrcodeToken)
+    {
+        try {
+            // Find employee by QR code token
+            $employee = Employee::where('qrcode_token', $qrcodeToken)->firstOrFail();
+
+            // Check if employee already scanned in this trip
+            if ($employee->hasScannedInTrip($trip->id)) {
+                return [
+                    'success' => false,
+                    'message' => 'พนักงานท่านนี้ได้สแกนแล้ว',
+                    'type' => 'duplicate',
+                    'data' => [
+                        'employee_code' => $employee->employee_code,
+                        'employee_name' => $employee->getFullName(),
+                    ],
+                ];
+            }
+
+            // Return employee data for confirmation
+            return [
+                'success' => true,
+                'message' => 'พบข้อมูลพนักงาน',
+                'type' => 'pending',
+                'data' => [
+                    'employee_id' => $employee->id,
+                    'employee_code' => $employee->employee_code,
+                    'employee_name' => $employee->getFullName(),
+                ],
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'ไม่พบข้อมูลพนักงาน: ' . $e->getMessage(),
+                'type' => 'error',
+            ];
+        }
+    }
+
+    /**
+     * Confirm and save attendance record
+     *
+     * @param Trip $trip
+     * @param int $employeeId
+     * @param array $locationData
+     * @return array
+     */
+    public function confirmAttendanceRecord(Trip $trip, int $employeeId, array $locationData = [])
+    {
+        try {
+            $employee = Employee::findOrFail($employeeId);
+
+            // Double check for duplicates
+            if ($employee->hasScannedInTrip($trip->id)) {
+                return [
+                    'success' => false,
+                    'message' => 'พนักงานท่านนี้ได้สแกนแล้ว',
+                    'type' => 'duplicate',
+                ];
+            }
+
+            // Create attendance record in database transaction
+            $record = DB::transaction(function () use ($trip, $employee, $locationData) {
+                $record = AttendanceRecord::create([
+                    'trip_id' => $trip->id,
+                    'employee_id' => $employee->id,
+                    'scanned_at' => now(),
+                    'scanned_by' => auth()->id(),
+                    'scan_latitude' => $locationData['latitude'] ?? null,
+                    'scan_longitude' => $locationData['longitude'] ?? null,
+                ]);
+
+                // Update trip passenger count
+                $trip->passenger_count = $trip->passenger_count + 1;
+                $trip->save();
+
+                // Recalculate fare for the trip
+                $this->recalculateTripFare($trip);
+
+                // Create audit log
+                AttendanceAudit::create([
+                    'attendance_record_id' => $record->id,
+                    'action' => 'created',
+                    'performed_by' => auth()->id(),
+                    'old_values' => null,
+                    'new_values' => json_encode($record->toArray()),
+                    'reason' => 'QR Code Scan',
+                ]);
+
+                return $record;
+            });
+
+            return [
+                'success' => true,
+                'message' => 'บันทึกข้อมูลสำเร็จ',
+                'type' => 'success',
+                'data' => [
+                    'employee_code' => $employee->employee_code,
+                    'employee_name' => $employee->getFullName(),
+                    'scanned_at' => $record->scanned_at->format('H:i:s'),
+                    'passenger_count' => $trip->passenger_count,
+                ],
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage(),
+                'type' => 'error',
+            ];
+        }
+    }
+
+    /**
      * Cancel attendance record
      *
      * @param AttendanceRecord $record

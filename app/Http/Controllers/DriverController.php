@@ -99,7 +99,7 @@ class DriverController extends Controller
     }
 
     /**
-     * Process QR code scan (AJAX)
+     * Process QR code scan (AJAX) - Validation only
      */
     public function processQrcodeScan(Request $request, Trip $trip)
     {
@@ -110,14 +110,44 @@ class DriverController extends Controller
 
         $validated = $request->validate([
             'qrcode_token' => 'required|string',
+        ]);
+
+        try {
+            $result = $this->attendanceService->validateQrcodeScan(
+                $trip,
+                $validated['qrcode_token']
+            );
+
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'type' => 'error',
+            ], 400);
+        }
+    }
+
+    /**
+     * Confirm attendance scan (AJAX) - Actually save to database
+     */
+    public function confirmAttendanceScan(Request $request, Trip $trip)
+    {
+        // Verify this is the driver's trip
+        if ($trip->driver_id !== auth()->id()) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'employee_id' => 'required|integer',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
         ]);
 
         try {
-            $result = $this->attendanceService->processQrcodeScan(
+            $result = $this->attendanceService->confirmAttendanceRecord(
                 $trip,
-                $validated['qrcode_token'],
+                $validated['employee_id'],
                 [
                     'latitude' => $validated['latitude'] ?? null,
                     'longitude' => $validated['longitude'] ?? null,
@@ -143,6 +173,9 @@ class DriverController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
+        // Refresh trip data from database to get latest passenger_count
+        $trip->refresh();
+        
         // ดึงทั้งหมดไม่จำกัด
         $records = $this->attendanceService->getRecentAttendance($trip);
         return response()->json([
