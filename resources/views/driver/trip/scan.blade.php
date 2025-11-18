@@ -3,21 +3,30 @@
 @section('title', 'สแกน QR Code')
 
 @section('content')
-<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
     /* Mobile-First Design */
     body {
         background: #f5f5f5;
     }
     
-    #cameraPreview {
+    #qr-reader {
         width: 100%;
-        height: 300px;
         max-width: 100%;
         border-radius: 12px;
-        object-fit: cover;
+        overflow: hidden;
         border: 3px solid #3498db;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    #qr-reader video {
+        width: 100% !important;
+        height: auto !important;
+        border-radius: 8px;
+    }
+    
+    #qr-reader__dashboard_section_csr {
+        display: none !important;
     }
 
     .scanner-container {
@@ -199,8 +208,18 @@
                 </div>
                 <div class="card-body p-2">
                     <div class="scanner-container">
-                        <video id="cameraPreview"></video>
-                        <div class="mt-3">
+                        <div id="qr-reader"></div>
+                        <div class="mt-3" id="camera-status">
+                            <div class="alert alert-info">
+                                <i class="fas fa-camera me-2"></i>
+                                <strong>กำลังเตรียมกล้อง...</strong><br>
+                                <small>หากไม่แสดงกล้อง กรุณากดปุ่มด้านล่าง</small>
+                            </div>
+                            <button type="button" class="btn btn-primary btn-lg w-100" onclick="requestCameraPermission()">
+                                <i class="fas fa-video me-2"></i>เปิดกล้อง
+                            </button>
+                        </div>
+                        <div class="mt-3" id="camera-controls" style="display:none;">
                             <button type="button" class="btn btn-outline-secondary btn-lg" onclick="switchCamera()">
                                 <i class="fas fa-sync-alt me-1"></i> เปลี่ยนกล้อง
                             </button>
@@ -274,50 +293,146 @@
 @section('scripts')
 <script>
     const tripId = {{ $trip->id }};
-    let codeReader;
-    let selectedDeviceId;
+    let html5QrCode;
+    let cameras = [];
+    let currentCameraIndex = 0;
+    let cameraPermissionGranted = false;
+
+    // Request camera permission manually
+    async function requestCameraPermission() {
+        try {
+            document.getElementById('camera-status').innerHTML = `
+                <div class="alert alert-info">
+                    <i class="fas fa-spinner fa-spin me-2"></i>
+                    <strong>กำลังขออนุญาตกล้อง...</strong><br>
+                    <small>กรุณากด "อนุญาต" เมื่อ browser ถาม</small>
+                </div>
+            `;
+            
+            // Force request permission
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: 'environment' } 
+            });
+            
+            // Stop the stream (we just needed permission)
+            stream.getTracks().forEach(track => track.stop());
+            
+            cameraPermissionGranted = true;
+            document.getElementById('camera-status').style.display = 'none';
+            
+            // Now start the QR scanner
+            await initCamera();
+            
+        } catch (err) {
+            console.error('Permission error:', err);
+            let errorMsg = '';
+            
+            if (err.name === 'NotAllowedError') {
+                errorMsg = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>ไม่ได้รับอนุญาตกล้อง</strong><br>
+                        <small>วิธีแก้ไข:</small><br>
+                        <ol class="mb-0 mt-2" style="text-align: left;">
+                            <li>คลิกไอคอนกุญแจ/กล้อง ข้างซ้าย URL bar</li>
+                            <li>เปลี่ยน Camera เป็น "Allow"</li>
+                            <li>Reload หน้านี้</li>
+                        </ol>
+                    </div>
+                    <button type="button" class="btn btn-primary btn-lg w-100 mt-2" onclick="location.reload()">
+                        <i class="fas fa-sync me-2"></i>Reload หน้า
+                    </button>
+                `;
+            } else if (err.name === 'NotFoundError') {
+                errorMsg = `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-camera-slash me-2"></i>
+                        <strong>ไม่พบกล้อง</strong><br>
+                        <small>อุปกรณ์นี้ไม่มีกล้อง หรือกล้องถูกปิดใช้งาน</small>
+                    </div>
+                `;
+            } else if (err.name === 'NotReadableError') {
+                errorMsg = `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        <strong>กล้องถูกใช้งานโดยแอปอื่น</strong><br>
+                        <small>กรุณาปิดแอปที่ใช้กล้องอยู่แล้วลองใหม่</small>
+                    </div>
+                    <button type="button" class="btn btn-primary btn-lg w-100 mt-2" onclick="requestCameraPermission()">
+                        <i class="fas fa-redo me-2"></i>ลองอีกครั้ง
+                    </button>
+                `;
+            } else {
+                errorMsg = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-times-circle me-2"></i>
+                        <strong>เกิดข้อผิดพลาด</strong><br>
+                        <small>${err.message || 'ไม่สามารถเปิดกล้องได้'}</small>
+                    </div>
+                    <button type="button" class="btn btn-primary btn-lg w-100 mt-2" onclick="requestCameraPermission()">
+                        <i class="fas fa-redo me-2"></i>ลองอีกครั้ง
+                    </button>
+                `;
+            }
+            
+            document.getElementById('camera-status').innerHTML = errorMsg;
+        }
+    }
 
     // Initialize camera scanning
     async function initCamera() {
         try {
-            codeReader = new ZXing.BrowserMultiFormatReader();
-            const videoElement = document.getElementById('cameraPreview');
-
-            // Request camera permission first
-            await navigator.mediaDevices.getUserMedia({ video: true });
-
-            // Get available video devices
-            const videoInputDevices = await codeReader.listVideoInputDevices();
-            console.log('Available cameras:', videoInputDevices);
-
-            // Use selected device or first device
-            if (!selectedDeviceId && videoInputDevices.length > 0) {
-                selectedDeviceId = videoInputDevices[0].deviceId;
+            html5QrCode = new Html5Qrcode("qr-reader");
+            
+            // Get camera list
+            const devices = await Html5Qrcode.getCameras();
+            console.log('Available cameras:', devices);
+            cameras = devices;
+            
+            if (devices && devices.length > 0) {
+                // Show camera switch button if multiple cameras
+                if (devices.length > 1) {
+                    document.getElementById('camera-controls').style.display = 'block';
+                }
+                
+                // Start with back camera (usually index 0 on mobile)
+                const cameraId = devices[currentCameraIndex].id;
+                
+                await html5QrCode.start(
+                    cameraId,
+                    {
+                        fps: 10,
+                        qrbox: { width: 250, height: 250 },
+                        aspectRatio: 1.0
+                    },
+                    (decodedText, decodedResult) => {
+                        console.log('Decoded:', decodedText);
+                        processQrcodeToken(decodedText);
+                    },
+                    (errorMessage) => {
+                        // Ignore continuous scanning errors
+                    }
+                );
+                
+                showScanResult('📷 กล้องพร้อมใช้งาน', 'success');
+            } else {
+                showScanResult('❌ ไม่พบกล้อง', 'error');
             }
-
-            // Start decoding from video device
-            codeReader.decodeFromVideoDevice(selectedDeviceId, videoElement, (result, err) => {
-                if (result) {
-                    console.log('Decoded:', result.text);
-                    processQrcodeToken(result.text);
-                }
-                if (err && !(err instanceof ZXing.NotFoundException)) {
-                    console.error('Decode error:', err);
-                }
-            });
-
-            showScanResult('📷 กล้องพร้อมใช้งาน', 'success');
         } catch (err) {
             console.error('Camera init error:', err);
-            if (err.name === 'NotAllowedError') {
-                showScanResult('❌ กรุณาอนุญาตการเข้าถึงกล้อง', 'error');
-            } else if (err.name === 'NotFoundError') {
-                showScanResult('❌ ไม่พบกล้อง', 'error');
-            } else if (err.name === 'NotReadableError') {
-                showScanResult('❌ กล้องถูกใช้งานอยู่', 'error');
-            } else {
-                showScanResult('❌ เกิดข้อผิดพลาด: ' + err.message, 'error');
+            let errorMsg = '❌ ไม่สามารถเปิดกล้องได้';
+            
+            if (err.message) {
+                if (err.message.includes('Permission')) {
+                    errorMsg = '❌ กรุณาอนุญาตการเข้าถึงกล้อง<br><small>ตั้งค่า → อนุญาตกล้อง → Reload หน้านี้</small>';
+                } else if (err.message.includes('NotFound')) {
+                    errorMsg = '❌ ไม่พบกล้อง';
+                } else if (err.message.includes('NotReadable')) {
+                    errorMsg = '❌ กล้องถูกใช้งานโดยแอปอื่น';
+                }
             }
+            
+            showScanResult(errorMsg, 'error');
         }
     }
 
@@ -330,6 +445,8 @@
     });
 
     function processQrcodeToken(token) {
+        if (!token) return;
+        
         fetch(`{{ route('driver.trip.scan-process', $trip) }}`, {
             method: 'POST',
             headers: {
@@ -358,7 +475,7 @@
 
     function showScanResult(message, type) {
         const resultDiv = document.getElementById('scanResult');
-        const typeClass = type === 'warning' ? 'error' : type; // Map warning to error styling
+        const typeClass = type === 'warning' ? 'error' : type;
         resultDiv.innerHTML = `<div class="scan-result ${typeClass}">${message}</div>`;
         setTimeout(() => {
             resultDiv.innerHTML = '';
@@ -366,7 +483,6 @@
         
         // Play sound for success
         if (type === 'success') {
-            // Beep sound (optional)
             try {
                 const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBA==');
                 audio.play().catch(() => {});
@@ -408,21 +524,42 @@
             });
     }
 
-    function switchCamera() {
-        // Stop current camera
-        if (codeReader) {
-            codeReader.reset();
-        }
-        
-        // Get next camera
-        codeReader.listVideoInputDevices().then(videoInputDevices => {
-            const currentIndex = videoInputDevices.findIndex(d => d.deviceId === selectedDeviceId);
-            const nextIndex = (currentIndex + 1) % videoInputDevices.length;
-            selectedDeviceId = videoInputDevices[nextIndex].deviceId;
+    async function switchCamera() {
+        try {
+            if (cameras.length <= 1) return;
+            
+            // Stop current camera
+            if (html5QrCode) {
+                await html5QrCode.stop();
+            }
+            
+            // Switch to next camera
+            currentCameraIndex = (currentCameraIndex + 1) % cameras.length;
             
             showScanResult('🔄 กำลังเปลี่ยนกล้อง...', 'success');
-            initCamera();
-        });
+            
+            // Start with new camera
+            const cameraId = cameras[currentCameraIndex].id;
+            await html5QrCode.start(
+                cameraId,
+                {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 },
+                    aspectRatio: 1.0
+                },
+                (decodedText, decodedResult) => {
+                    processQrcodeToken(decodedText);
+                },
+                (errorMessage) => {
+                    // Ignore
+                }
+            );
+            
+                    showScanResult('✓ เปลี่ยนกล้องแล้ว', 'success');
+        } catch (err) {
+            console.error('Switch camera error:', err);
+            showScanResult('❌ ไม่สามารถเปลี่ยนกล้องได้', 'error');
+        }
     }
 
     function cancelLastRecord() {
@@ -460,7 +597,26 @@
         }
     }
 
-    // Start camera on load
-    window.addEventListener('load', initCamera);
+    // Start camera on load - but don't force it
+    window.addEventListener('load', () => {
+        // Check if permission was previously granted
+        navigator.permissions.query({ name: 'camera' }).then(permission => {
+            if (permission.state === 'granted') {
+                cameraPermissionGranted = true;
+                document.getElementById('camera-status').style.display = 'none';
+                setTimeout(initCamera, 500);
+            }
+            // If denied or prompt, show the manual button
+        }).catch(() => {
+            // Permissions API not supported, just show the button
+        });
+    });
+    
+    // Stop camera when leaving page
+    window.addEventListener('beforeunload', () => {
+        if (html5QrCode) {
+            html5QrCode.stop().catch(() => {});
+        }
+    });
 </script>
 @endsection
