@@ -580,11 +580,37 @@
                 
                 updateAttendanceList();
             } else {
-                showScanResult(data.message || 'เกิดข้อผิดพลาด', 'error');
+                // ปิด modal และลบ backdrop ก่อนแสดง error
+                const modal = bootstrap.Modal.getInstance(document.getElementById('confirmScanModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                setTimeout(() => {
+                    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                    document.body.classList.remove('modal-open');
+                    document.body.style.overflow = '';
+                    document.body.style.paddingRight = '';
+                }, 200);
+                
+                // แสดง error message
+                const errorType = data.type === 'duplicate' ? 'warning' : 'error';
+                showScanResult(data.message || 'เกิดข้อผิดพลาด', errorType);
             }
             pendingRecord = null;
         })
         .catch(err => {
+            // ปิด modal และลบ backdrop ก่อนแสดง error
+            const modal = bootstrap.Modal.getInstance(document.getElementById('confirmScanModal'));
+            if (modal) {
+                modal.hide();
+            }
+            setTimeout(() => {
+                document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                document.body.classList.remove('modal-open');
+                document.body.style.overflow = '';
+                document.body.style.paddingRight = '';
+            }, 200);
+            
             showScanResult('เกิดข้อผิดพลาด: ' + err.message, 'error');
             pendingRecord = null;
         });

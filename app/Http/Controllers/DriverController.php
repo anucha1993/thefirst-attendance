@@ -192,7 +192,7 @@ class DriverController extends Controller
     public function cancelLastRecord(Request $request, Trip $trip)
     {
         if ($trip->driver_id !== auth()->id()) {
-            return back()->with('error', 'Unauthorized');
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
         $validated = $request->validate([
@@ -204,15 +204,18 @@ class DriverController extends Controller
             ->first();
 
         if (!$lastRecord) {
-            return back()->with('error', 'ไม่มีรายการสแกนที่สามารถยกเลิกได้');
+            return response()->json([
+                'success' => false,
+                'message' => 'ไม่มีรายการสแกนที่สามารถยกเลิกได้'
+            ], 404);
         }
 
-        $this->attendanceService->cancelAttendanceRecord(
+        $result = $this->attendanceService->cancelAttendanceRecord(
             $lastRecord,
             $validated['reason'] ?? 'ยกเลิกจากหน้าจอของคนขับ'
         );
 
-        return back()->with('success', 'ยกเลิกรายการสำเร็จ');
+        return response()->json($result);
     }
 
     /**

@@ -144,17 +144,28 @@ class AttendanceService
         try {
             $employee = Employee::findOrFail($employeeId);
 
-            // Double check for duplicates
+            // Refresh trip data และ double check for duplicates
+            $trip->refresh();
             if ($employee->hasScannedInTrip($trip->id)) {
                 return [
                     'success' => false,
-                    'message' => 'พนักงานท่านนี้ได้สแกนแล้ว',
+                    'message' => 'พนักงานท่านนี้ได้สแกนไปแล้ว',
                     'type' => 'duplicate',
                 ];
             }
 
             // Create attendance record in database transaction
             $record = DB::transaction(function () use ($trip, $employee, $locationData) {
+                // ตรวจสอบอีกครั้งใน transaction เพื่อป้องกัน race condition (เฉพาะที่ยังไม่ถูกยกเลิก)
+                $exists = AttendanceRecord::where('trip_id', $trip->id)
+                    ->where('employee_id', $employee->id)
+                    ->whereNull('deleted_at')
+                    ->exists();
+                    
+                if ($exists) {
+                    throw new \Exception('พนักงานท่านนี้ได้สแกนไปแล้ว');
+                }
+                
                 $record = AttendanceRecord::create([
                     'trip_id' => $trip->id,
                     'employee_id' => $employee->id,
@@ -196,10 +207,24 @@ class AttendanceService
                     'passenger_count' => $trip->passenger_count,
                 ],
             ];
+        } catch (\Illuminate\Database\QueryException $e) {
+            // จับ duplicate key error
+            if ($e->errorInfo[1] == 1062) {
+                return [
+                    'success' => false,
+                    'message' => 'พนักงานท่านนี้ได้สแกนไปแล้ว',
+                    'type' => 'duplicate',
+                ];
+            }
+            return [
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาดฐานข้อมูล',
+                'type' => 'error',
+            ];
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage(),
+                'message' => $e->getMessage(),
                 'type' => 'error',
             ];
         }
@@ -217,20 +242,14 @@ class AttendanceService
         return DB::transaction(function () use ($record, $reason) {
             $trip = $record->trip;
 
-            // Store old data
+            // Store old data และ record id ก่อนลบ
             $oldData = $record->getDetail();
+            $recordId = $record->id;
 
-            // Decrement passenger count
-            $trip->passenger_count = $trip->passenger_count - 1;
-            $trip->save();
-
-            // Recalculate fare
-            $this->recalculateTripFare($trip);
-
-            // Create audit log
+            // Create audit log ก่อนลบ (เพื่อไม่ให้เกิด foreign key error)
             AttendanceAudit::create([
                 'trip_id' => $trip->id,
-                'attendance_record_id' => $record->id,
+                'attendance_record_id' => $recordId,
                 'user_id' => auth()->id(),
                 'action' => 'cancelled',
                 'reason' => $reason,
@@ -238,8 +257,15 @@ class AttendanceService
                 'new_data' => null,
             ]);
 
-            // Soft delete the record
-            $record->delete();
+            // Hard delete (ลบถาวร) เพื่อไม่ให้เกิดปัญหา duplicate
+            $record->forceDelete();
+
+            // Recalculate passenger count จากจำนวนจริง (เพื่อความแม่นยำ)
+            $trip->passenger_count = $trip->attendanceRecords()->count();
+            $trip->save();
+
+            // Recalculate fare
+            $this->recalculateTripFare($trip);
 
             return [
                 'success' => true,

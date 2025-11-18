@@ -77,12 +77,13 @@ class Employee extends Model
     }
 
     /**
-     * Check if employee scanned in a specific trip
+     * Check if employee scanned in a specific trip (เฉพาะที่ยังไม่ถูกยกเลิก)
      */
     public function hasScannedInTrip($tripId)
     {
         return $this->attendanceRecords()
             ->where('trip_id', $tripId)
+            ->whereNull('deleted_at') // เช็คเฉพาะที่ยังไม่ถูกยกเลิก
             ->exists();
     }
 }
