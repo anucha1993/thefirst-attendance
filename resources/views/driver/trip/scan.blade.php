@@ -187,14 +187,14 @@
 
     <!-- Passenger Counter - Full width on mobile -->
     <div class="counter-card">
-        <div class="counter" id="passengerCount">{{ $tripSummary['total_passengers'] ?? 0 }}</div>
+        <div class="counter" id="passengerCount">{{ $tripSummary['passenger_count'] ?? 0 }}</div>
         <h5 class="mb-2">ผู้โดยสาร</h5>
         <p class="mb-3 opacity-75">{{ $trip->vehicle->capacity }} ที่นั่ง</p>
         
         <div class="progress" style="height: 30px; background: rgba(255,255,255,0.3);">
             <div class="progress-bar bg-success" role="progressbar" id="capacityProgress" 
-                 style="width: {{ $trip->vehicle->capacity > 0 ? round((($tripSummary['total_passengers'] ?? 0) / $trip->vehicle->capacity) * 100) : 0 }}%; font-size: 1.1rem; font-weight: 600;">
-                {{ $trip->vehicle->capacity > 0 ? round((($tripSummary['total_passengers'] ?? 0) / $trip->vehicle->capacity) * 100) : 0 }}%
+                 style="width: {{ $trip->vehicle->capacity > 0 ? round((($tripSummary['passenger_count'] ?? 0) / $trip->vehicle->capacity) * 100) : 0 }}%; font-size: 1.1rem; font-weight: 600;">
+                {{ $trip->vehicle->capacity > 0 ? round((($tripSummary['passenger_count'] ?? 0) / $trip->vehicle->capacity) * 100) : 0 }}%
             </div>
         </div>
     </div>
@@ -252,10 +252,17 @@
                     <div class="attendance-list" id="attendanceList">
                         @if(!empty($recentRecords) && count($recentRecords) > 0)
                             @foreach($recentRecords as $record)
-                                <div class="attendance-item">
-                                    <div class="fw-bold fs-5">{{ $record['employee_code'] }}</div>
-                                    <div>{{ $record['employee_name'] }}</div>
-                                    <small class="text-muted"><i class="fas fa-clock me-1"></i>{{ $record['scanned_at'] }}</small>
+                                <div class="attendance-item" style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-right: 5px;">
+                                    <div style="flex: 1; min-width: 0;">
+                                        <div class="fw-bold fs-5">{{ $record['employee_code'] }}</div>
+                                        <div style="overflow: hidden; text-overflow: ellipsis;">{{ $record['employee_name'] }}</div>
+                                        <small class="text-muted"><i class="fas fa-clock me-1"></i>{{ $record['scanned_at'] }}</small>
+                                    </div>
+                                    <button type="button" class="btn btn-danger btn-sm" 
+                                        onclick="cancelSpecificRecord({{ $record['id'] }}, '{{ str_replace("'", "\\'", $record['employee_name']) }}')"
+                                        style="white-space: nowrap; flex-shrink: 0; min-width: 40px; height: 40px;">
+                                        <i class="fas fa-times"></i> ยกเลิก
+                                    </button>
                                 </div>
                             @endforeach
                         @else
@@ -321,6 +328,7 @@
 
 @section('scripts')
 <script>
+    // Force reload - v1.1
     const tripId = {{ $trip->id }};
     let html5QrCode;
     let cameras = [];
@@ -607,6 +615,7 @@
             .then(res => res.json())
             .then(data => {
                 console.log('API Response:', data); // Debug
+                console.log('Records:', data.records); // Debug
                 
                 const count = data.passenger_count !== undefined ? data.passenger_count : 0;
                 const capacity = {{ $trip->vehicle->capacity }};
@@ -629,15 +638,15 @@
                 // Update list - แสดงทั้งหมด
                 if (data.records && data.records.length > 0) {
                     const listHtml = data.records.map(r =>
-                        `<div class="attendance-item" style="display: flex; align-items: center; justify-content: space-between;">
-                            <div style="flex: 1;">
+                        `<div class="attendance-item" style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-right: 5px;">
+                            <div style="flex: 1; min-width: 0;">
                                 <div class="fw-bold fs-5">${r.employee_code}</div>
-                                <div>${r.employee_name}</div>
+                                <div style="overflow: hidden; text-overflow: ellipsis;">${r.employee_name}</div>
                                 <small class="text-muted"><i class="fas fa-clock me-1"></i>${r.scanned_at}</small>
                             </div>
-                            <button type="button" class="btn btn-danger btn-sm" onclick="cancelSpecificRecord(${r.id}, '${r.employee_name}')"
-                                style="white-space: nowrap;">
-                                <i class="fas fa-times"></i>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="cancelSpecificRecord(${r.id}, '${r.employee_name.replace(/'/g, "\\'")}')"
+                                style="white-space: nowrap; flex-shrink: 0; min-width: 40px; height: 40px;">
+                                <i class="fas fa-times"></i> ยกเลิก
                             </button>
                         </div>`
                     ).join('');
@@ -759,6 +768,9 @@
 
     // Start camera on load - but don't force it
     window.addEventListener('load', () => {
+        // ไม่เรียก updateAttendanceList() ทันที ให้ใช้ข้อมูลจาก Blade ก่อน
+        // จะ update ก็ต่อเมื่อมีการสแกนใหม่
+        
         // Check if permission was previously granted
         navigator.permissions.query({ name: 'camera' }).then(permission => {
             if (permission.state === 'granted') {

@@ -173,12 +173,13 @@ class AttendanceService
 
                 // Create audit log
                 AttendanceAudit::create([
+                    'trip_id' => $trip->id,
                     'attendance_record_id' => $record->id,
+                    'user_id' => auth()->id(),
                     'action' => 'created',
-                    'performed_by' => auth()->id(),
-                    'old_values' => null,
-                    'new_values' => json_encode($record->toArray()),
                     'reason' => 'QR Code Scan',
+                    'old_data' => null,
+                    'new_data' => json_encode($record->toArray()),
                 ]);
 
                 return $record;
@@ -234,6 +235,7 @@ class AttendanceService
                 'action' => 'cancelled',
                 'reason' => $reason,
                 'old_data' => $oldData,
+                'new_data' => null,
             ]);
 
             // Soft delete the record
