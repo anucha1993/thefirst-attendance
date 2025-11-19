@@ -330,6 +330,7 @@
     @endif
 
     <!-- Minimal Passenger List -->
+    <div id="passengerListSection">
     @if($recentRecords && count($recentRecords) > 0)
         <div class="passenger-list-minimal">
             <div class="list-header">รายชื่อผู้โดยสาร</div>
@@ -352,6 +353,7 @@
             </div>
         </div>
     @endif
+    </div>
 
     <!-- Complete Button (Minimal) - Only for active trips -->
     @if($trip->status === 'active')
@@ -494,12 +496,15 @@
     function stopCamera() {
         if (html5QrCode) {
             html5QrCode.stop().then(() => {
-                document.getElementById('camera-status').style.display = 'block';
-                document.getElementById('camera-controls').style.display = 'none';
-                html5QrCode = null;
+                // Reload page after stopping camera
+                location.reload();
             }).catch(err => {
                 console.error('Stop camera error:', err);
+                // Reload anyway
+                location.reload();
             });
+        } else {
+            location.reload();
         }
     }
 
@@ -602,14 +607,26 @@
         })
         .then(response => response.json())
         .then(data => {
+            console.log('Confirm scan response:', data);
+            
             const modal = bootstrap.Modal.getInstance(document.getElementById('confirmScanModal'));
             modal.hide();
             
             if (data.success) {
-                // Update UI immediately
-                updatePassengerCount(data.passenger_count);
-                updatePassengerList(data.records);
+                // Extract data from nested data object
+                const passengerCount = data.data?.passenger_count || 0;
+                const records = data.data?.records || [];
                 
+                console.log('Success! Updating UI with:', {
+                    count: passengerCount,
+                    records: records
+                });
+                
+                // Update UI immediately BEFORE showing SweetAlert
+                updatePassengerCount(passengerCount);
+                updatePassengerList(records);
+                
+                // Show success message
                 Swal.fire({
                     icon: 'success',
                     title: 'บันทึกสำเร็จ',
@@ -618,6 +635,7 @@
                     showConfirmButton: false
                 });
             } else {
+                console.error('Scan failed:', data.message);
                 Swal.fire({
                     icon: 'error',
                     title: 'ไม่สามารถบันทึกได้',
@@ -643,6 +661,15 @@
                     }
                 }
             }, 300);
+        })
+        .catch(error => {
+            console.error('Fetch error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาด',
+                text: 'กรุณาลองใหม่',
+                confirmButtonText: 'ตกลง'
+            });
         });
     }
 
@@ -726,10 +753,21 @@
                 })
                 .then(response => response.json())
                 .then(data => {
+                    console.log('Cancel record response:', data);
+                    
                     if (data.success) {
+                        // Extract data from nested data object
+                        const passengerCount = data.data?.passenger_count || 0;
+                        const records = data.data?.records || [];
+                        
+                        console.log('Deleting success! Updating UI with:', {
+                            count: passengerCount,
+                            records: records
+                        });
+                        
                         // Force immediate UI update
-                        updatePassengerCount(data.passenger_count);
-                        updatePassengerList(data.records);
+                        updatePassengerCount(passengerCount);
+                        updatePassengerList(records);
                         
                         Swal.fire({
                             icon: 'success',

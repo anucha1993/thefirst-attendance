@@ -205,6 +205,7 @@ class AttendanceService
                     'employee_name' => $employee->getFullName(),
                     'scanned_at' => $record->scanned_at->format('H:i:s'),
                     'passenger_count' => $trip->passenger_count,
+                    'records' => $this->getRecentAttendance($trip),
                 ],
             ];
         } catch (\Illuminate\Database\QueryException $e) {
@@ -270,7 +271,10 @@ class AttendanceService
             return [
                 'success' => true,
                 'message' => 'ยกเลิกการสแกนสำเร็จ',
-                'passenger_count' => $trip->passenger_count,
+                'data' => [
+                    'passenger_count' => $trip->passenger_count,
+                    'records' => $this->getRecentAttendance($trip),
+                ],
             ];
         });
     }
