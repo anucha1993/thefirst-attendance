@@ -615,24 +615,24 @@
             if (data.success) {
                 // Extract data from nested data object
                 const passengerCount = data.data?.passenger_count || 0;
-                const records = data.data?.records || [];
+                const records = Array.isArray(data.data?.records) ? data.data.records : [];
                 
                 console.log('Success! Updating UI with:', {
                     count: passengerCount,
-                    records: records
+                    records: records,
+                    recordsIsArray: Array.isArray(records)
                 });
-                
-                // Update UI immediately BEFORE showing SweetAlert
-                updatePassengerCount(passengerCount);
-                updatePassengerList(records);
                 
                 // Show success message
                 Swal.fire({
                     icon: 'success',
                     title: 'บันทึกสำเร็จ',
                     text: `${pendingEmployeeData.employee_name}`,
-                    timer: 1500,
+                    timer: 1000,
                     showConfirmButton: false
+                }).then(() => {
+                    // Reload page to get fresh data
+                    location.reload();
                 });
             } else {
                 console.error('Scan failed:', data.message);
@@ -664,6 +664,18 @@
         })
         .catch(error => {
             console.error('Fetch error:', error);
+            
+            // Clean up modal even on error
+            const modal = bootstrap.Modal.getInstance(document.getElementById('confirmScanModal'));
+            if (modal) {
+                modal.hide();
+            }
+            setTimeout(() => {
+                document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                document.body.classList.remove('modal-open');
+                document.body.style.overflow = '';
+            }, 300);
+            
             Swal.fire({
                 icon: 'error',
                 title: 'เกิดข้อผิดพลาด',
@@ -682,11 +694,17 @@
     }
 
     function updatePassengerList(records) {
-        console.log('Updating passenger list:', records);
+        console.log('Updating passenger list:', records, 'Type:', typeof records, 'IsArray:', Array.isArray(records));
         const listSection = document.getElementById('passengerListSection');
         if (!listSection) {
             console.error('passengerListSection not found!');
             return;
+        }
+        
+        // Ensure records is an array
+        if (!Array.isArray(records)) {
+            console.error('records is not an array:', records);
+            records = [];
         }
         
         if (!records || records.length === 0) {
@@ -758,11 +776,12 @@
                     if (data.success) {
                         // Extract data from nested data object
                         const passengerCount = data.data?.passenger_count || 0;
-                        const records = data.data?.records || [];
+                        const records = Array.isArray(data.data?.records) ? data.data.records : [];
                         
                         console.log('Deleting success! Updating UI with:', {
                             count: passengerCount,
-                            records: records
+                            records: records,
+                            recordsIsArray: Array.isArray(records)
                         });
                         
                         // Force immediate UI update

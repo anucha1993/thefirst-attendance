@@ -196,6 +196,13 @@ class AttendanceService
                 return $record;
             });
 
+            // Force database to commit all pending writes
+            DB::statement('SELECT 1'); // Dummy query to force sync
+            
+            // Get fresh data AFTER transaction committed
+            $trip->refresh();
+            $records = $this->getRecentAttendance($trip);
+
             return [
                 'success' => true,
                 'message' => 'บันทึกข้อมูลสำเร็จ',
@@ -205,7 +212,7 @@ class AttendanceService
                     'employee_name' => $employee->getFullName(),
                     'scanned_at' => $record->scanned_at->format('H:i:s'),
                     'passenger_count' => $trip->passenger_count,
-                    'records' => $this->getRecentAttendance($trip),
+                    'records' => $records,
                 ],
             ];
         } catch (\Illuminate\Database\QueryException $e) {
@@ -240,9 +247,9 @@ class AttendanceService
      */
     public function cancelAttendanceRecord(AttendanceRecord $record, string $reason = '')
     {
-        return DB::transaction(function () use ($record, $reason) {
-            $trip = $record->trip;
-
+        $trip = $record->trip;
+        
+        DB::transaction(function () use ($record, $reason, $trip) {
             // Store old data และ record id ก่อนลบ
             $oldData = $record->getDetail();
             $recordId = $record->id;
@@ -267,16 +274,20 @@ class AttendanceService
 
             // Recalculate fare
             $this->recalculateTripFare($trip);
-
-            return [
-                'success' => true,
-                'message' => 'ยกเลิกการสแกนสำเร็จ',
-                'data' => [
-                    'passenger_count' => $trip->passenger_count,
-                    'records' => $this->getRecentAttendance($trip),
-                ],
-            ];
         });
+
+        // Get fresh data AFTER transaction committed
+        $trip->refresh();
+        $records = $this->getRecentAttendance($trip);
+
+        return [
+            'success' => true,
+            'message' => 'ยกเลิกการสแกนสำเร็จ',
+            'data' => [
+                'passenger_count' => $trip->passenger_count,
+                'records' => $records,
+            ],
+        ];
     }
 
     /**
@@ -320,7 +331,8 @@ class AttendanceService
      */
     public function getRecentAttendance(Trip $trip, int $limit = null)
     {
-        $query = $trip->attendanceRecords()
+        // Use fresh query instead of relation to avoid cache issues
+        $query = AttendanceRecord::where('trip_id', $trip->id)
             ->with('employee')
             ->latest('scanned_at');
         
@@ -328,7 +340,16 @@ class AttendanceService
             $query->limit($limit);
         }
         
-        return $query->get()
+        $records = $query->get();
+        
+        // Debug log
+        \Log::info('getRecentAttendance called', [
+            'trip_id' => $trip->id,
+            'records_count' => $records->count(),
+            'sql' => $query->toSql(),
+        ]);
+        
+        return $records
             ->reverse()
             ->map(fn($r) => [
                 'id' => $r->id,
