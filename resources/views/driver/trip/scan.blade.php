@@ -304,9 +304,9 @@
             <div id="qr-reader"></div>
 
             <div id="camera-status" style="margin-top: 1rem;">
-                <button type="button" class="camera-btn" onclick="requestCameraPermission()">
+                {{-- <button type="button" class="camera-btn" onclick="requestCameraPermission()">
                     <i class="fas fa-camera"></i>เปิดกล้อง
-                </button>
+                </button> --}}
             </div>
 
             <div id="camera-controls" style="margin-top: 1rem; display: none;">
