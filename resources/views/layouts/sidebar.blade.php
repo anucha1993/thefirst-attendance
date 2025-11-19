@@ -85,15 +85,9 @@
 
         @elseif(auth()->user()->role === 'driver')
             <!-- Driver Menu -->
-            <div class="sidebar-section-title">Operations</div>
-            <a href="{{ route('driver.dashboard') }}" class="nav-link {{ request()->routeIs('driver.dashboard') ? 'active' : '' }}">
-                <i class="fas fa-chart-line"></i> Dashboard
-            </a>
-            <a href="{{ route('driver.trip.start') }}" class="nav-link {{ request()->routeIs('driver.trip.start') ? 'active' : '' }}">
-                <i class="fas fa-play-circle"></i> Start Trip
-            </a>
-            <a href="{{ route('driver.today-trips') }}" class="nav-link {{ request()->routeIs('driver.today-trips') ? 'active' : '' }}">
-                <i class="fas fa-list"></i> Today's Trips
+            <div class="sidebar-section-title">ดำเนินการ</div>
+            <a href="{{ route('driver.work-center') }}" class="nav-link {{ request()->routeIs('driver.work-center') ? 'active' : '' }}" style="font-size: 1.1rem; padding: 18px 20px;">
+                <i class="fas fa-tasks" style="font-size: 1.3rem;"></i> ศูนย์ควบคุมงาน
             </a>
 
         @elseif(auth()->user()->role === 'supervisor')

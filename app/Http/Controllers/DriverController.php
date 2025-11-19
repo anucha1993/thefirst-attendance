@@ -24,29 +24,15 @@ class DriverController extends Controller
     }
 
     /**
-     * Driver dashboard
+     * Work Center - Single page showing all trips with ability to add new trip
      */
-    public function dashboard()
-    {
-        $driver = auth()->user();
-        $vehicles = $driver->vehicles;
-        $todayTrips = Trip::whereDate('started_at', today())
-            ->where('driver_id', $driver->id)
-            ->count();
-
-        return view('driver.dashboard', compact('vehicles', 'todayTrips'));
-    }
-
-    /**
-     * Show start trip form
-     */
-    public function startTripForm()
+    public function workCenter()
     {
         $driver = auth()->user();
         $vehicles = $driver->vehicles()->where('status', 'active')->get();
         $routes = Route::orderBy('name')->get();
 
-        return view('driver.trip.start-form', compact('vehicles', 'routes'));
+        return view('driver.work-center', compact('vehicles', 'routes'));
     }
 
     /**
@@ -58,6 +44,16 @@ class DriverController extends Controller
             'vehicle_id' => 'required|exists:vehicles,id',
             'route_id' => 'required|exists:routes,id',
         ]);
+
+        // Check if driver already has an active trip TODAY
+        $activeTrip = Trip::where('driver_id', auth()->id())
+            ->where('status', 'active')
+            ->whereDate('started_at', today())
+            ->first();
+
+        if ($activeTrip) {
+            return back()->with('error', 'คุณมีรอบที่กำลังดำเนินการอยู่ กรุณาปิดรอบก่อนเพื่อสร้างรอบใหม่');
+        }
 
         // Verify driver has access to this vehicle
         $hasVehicle = auth()->user()->vehicles()
@@ -86,11 +82,6 @@ class DriverController extends Controller
         // Verify this is the driver's trip
         if ($trip->driver_id !== auth()->id()) {
             abort(403, 'Unauthorized');
-        }
-
-        if (!$trip->isActive()) {
-            return redirect()->route('driver.dashboard')
-                ->with('error', 'รอบนี้ไม่ใช่ลำดับที่ใช้งาน');
         }
 
         $tripSummary = $this->attendanceService->getTripSummary($trip);
@@ -266,8 +257,8 @@ class DriverController extends Controller
 
         $this->tripService->completeTrip($trip, $validated['notes'] ?? null);
 
-        return redirect()->route('driver.trip-summary', $trip)
-            ->with('success', 'ปิดรอบสำเร็จ');
+        return redirect()->route('driver.work-center')
+            ->with('success', 'ปิดรอบสำเร็จ จำนวนผู้โดยสาร ' . $trip->passenger_count . ' คน');
     }
 
     /**
@@ -287,15 +278,4 @@ class DriverController extends Controller
     /**
      * View today's trips
      */
-    public function todayTrips()
-    {
-        $driver = auth()->user();
-        $trips = Trip::whereDate('started_at', today())
-            ->where('driver_id', $driver->id)
-            ->with(['vehicle', 'route', 'attendanceRecords'])
-            ->orderBy('started_at')
-            ->get();
-
-        return view('driver.today-trips', compact('trips'));
-    }
 }

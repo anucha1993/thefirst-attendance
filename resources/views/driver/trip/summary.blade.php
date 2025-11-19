@@ -234,7 +234,7 @@
         <button onclick="window.print()" class="btn btn-info me-2">
             <i class="fas fa-print me-1"></i>พิมพ์
         </button>
-        <a href="{{ route('driver.dashboard') }}" class="btn btn-secondary">
+        <a href="{{ route('driver.work-center') }}" class="btn btn-secondary">
             <i class="fas fa-home me-1"></i>หน้าหลัก
         </a>
     </div>

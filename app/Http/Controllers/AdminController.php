@@ -396,7 +396,8 @@ class AdminController extends Controller
 
     public function usersCreate()
     {
-        return view('admin.users.create');
+        $vehicles = Vehicle::where('status', 'active')->orderBy('license_plate')->get();
+        return view('admin.users.create', compact('vehicles'));
     }
 
     public function usersStore(Request $request)
@@ -407,12 +408,23 @@ class AdminController extends Controller
             'password' => 'required|string|min:8|confirmed',
             'role' => 'required|in:admin,driver,supervisor,employee',
             'is_active' => 'boolean',
+            'vehicles' => 'nullable|array',
+            'vehicles.*' => 'exists:vehicles,id',
         ]);
 
         $validated['password'] = Hash::make($validated['password']);
         $validated['is_active'] = $request->has('is_active');
 
-        User::create($validated);
+        $user = User::create($validated);
+
+        // Attach vehicles if role is driver
+        if ($user->role === 'driver' && $request->has('vehicles')) {
+            $pivotData = [];
+            foreach ($request->vehicles as $vehicleId) {
+                $pivotData[$vehicleId] = ['assigned_from' => now()];
+            }
+            $user->vehicles()->attach($pivotData);
+        }
 
         return redirect()->route('admin.users.index')
             ->with('success', 'เพิ่มผู้ใช้เรียบร้อย');
@@ -420,7 +432,8 @@ class AdminController extends Controller
 
     public function usersEdit(User $user)
     {
-        return view('admin.users.edit', compact('user'));
+        $vehicles = Vehicle::where('status', 'active')->orderBy('license_plate')->get();
+        return view('admin.users.edit', compact('user', 'vehicles'));
     }
 
     public function usersUpdate(Request $request, User $user)
@@ -431,6 +444,8 @@ class AdminController extends Controller
             'password' => 'nullable|string|min:8|confirmed',
             'role' => 'required|in:admin,driver,supervisor,employee',
             'is_active' => 'boolean',
+            'vehicles' => 'nullable|array',
+            'vehicles.*' => 'exists:vehicles,id',
         ]);
 
         if (!empty($validated['password'])) {
@@ -442,6 +457,18 @@ class AdminController extends Controller
         $validated['is_active'] = $request->has('is_active');
 
         $user->update($validated);
+
+        // Sync vehicles if role is driver
+        if ($user->role === 'driver') {
+            $pivotData = [];
+            foreach ($request->vehicles ?? [] as $vehicleId) {
+                $pivotData[$vehicleId] = ['assigned_from' => now()];
+            }
+            $user->vehicles()->sync($pivotData);
+        } else {
+            // Remove all vehicles if not driver
+            $user->vehicles()->detach();
+        }
 
         return redirect()->route('admin.users.index')
             ->with('success', 'แก้ไขผู้ใช้เรียบร้อย');

@@ -1,310 +1,377 @@
-@extends('layouts.app')
+@extends('layouts.guest')
 
 @section('title', 'สแกน QR Code')
 
 @section('content')
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
-    /* Mobile-First Design */
     body {
-        background: #f5f5f5;
+        background: #f5f7fa;
+        margin: 0;
+        padding: 0;
     }
-    
+
+    .scan-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 15px;
+        min-height: 100vh;
+    }
+
+    /* Minimal Header */
+    .minimal-header {
+        background: white;
+        padding: 1rem;
+        border-radius: 10px;
+        margin-bottom: 1rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .header-info {
+        flex: 1;
+    }
+
+    .header-title {
+        font-size: 0.95rem;
+        color: #64748b;
+        margin: 0;
+    }
+
+    .header-detail {
+        font-size: 0.85rem;
+        color: #94a3b8;
+        margin-top: 0.2rem;
+    }
+
+    .btn-back {
+        background: #f1f5f9;
+        border: none;
+        color: #475569;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    /* Compact Counter */
+    .compact-counter {
+        background: white;
+        padding: 1rem;
+        border-radius: 10px;
+        margin-bottom: 1rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .counter-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #10b981;
+        line-height: 1;
+    }
+
+    .counter-label {
+        font-size: 0.9rem;
+        color: #64748b;
+        margin-left: 1rem;
+    }
+
+    /* MAIN: QR Scanner Section - Most Prominent */
+    .scanner-main {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 1.5rem;
+        border-radius: 15px;
+        margin-bottom: 1rem;
+        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+    }
+
+    .scanner-title {
+        color: white;
+        font-size: 1.3rem;
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+
+    .scanner-title i {
+        font-size: 1.5rem;
+        margin-right: 0.5rem;
+    }
+
     #qr-reader {
         width: 100%;
-        max-width: 100%;
         border-radius: 12px;
         overflow: hidden;
-        border: 3px solid #3498db;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        border: 4px solid rgba(255,255,255,0.3);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     }
-    
+
     #qr-reader video {
         width: 100% !important;
         height: auto !important;
-        border-radius: 8px;
     }
-    
+
     #qr-reader__dashboard_section_csr {
         display: none !important;
     }
 
-    .scanner-container {
-        text-align: center;
-        padding: 15px;
+    .camera-btn {
         background: white;
-    }
-
-    .attendance-list {
-        max-height: 300px;
-        overflow-y: auto;
-    }
-
-    .attendance-item {
-        padding: 15px;
-        background: white;
-        border-left: 5px solid #27ae60;
-        margin-bottom: 10px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        animation: slideIn 0.3s ease-in;
-    }
-
-    @keyframes slideIn {
-        from {
-            opacity: 0;
-            transform: translateX(-20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateX(0);
-        }
-    }
-
-    .scan-result {
-        padding: 20px;
-        border-radius: 12px;
-        margin: 15px 0;
-        font-weight: 600;
-        font-size: 1.1rem;
-        text-align: center;
-    }
-
-    .scan-result.success {
-        background: #d4edda;
-        border: 2px solid #28a745;
-        color: #155724;
-    }
-
-    .scan-result.error {
-        background: #f8d7da;
-        border: 2px solid #dc3545;
-        color: #721c24;
-    }
-
-    .counter {
-        font-size: 5rem;
-        color: #3498db;
-        font-weight: 700;
-        text-align: center;
-        padding: 30px 20px;
-        line-height: 1;
-    }
-    
-    .counter-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-radius: 15px;
-        padding: 25px;
-        text-align: center;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-        margin-bottom: 15px;
-    }
-    
-    .counter-card .counter {
-        color: white;
-        font-size: 4.5rem;
-        margin: 0;
-    }
-    
-    .btn-xl {
-        padding: 18px 24px;
-        font-size: 1.3rem;
-        border-radius: 12px;
-        font-weight: 600;
-    }
-    
-    .card {
-        border-radius: 12px;
+        color: #667eea;
         border: none;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        margin-bottom: 15px;
-    }
-    
-    .card-header {
-        border-radius: 12px 12px 0 0 !important;
-        padding: 15px 20px;
+        padding: 1rem;
+        border-radius: 10px;
         font-size: 1.1rem;
+        font-weight: 700;
+        width: 100%;
+        margin-top: 1rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .camera-btn i {
+        margin-right: 0.5rem;
+        font-size: 1.2rem;
+    }
+
+    .input-token {
+        background: rgba(255,255,255,0.95);
+        border: 2px solid rgba(255,255,255,0.5);
+        color: #1e293b;
+        padding: 1rem;
+        border-radius: 10px;
+        font-size: 1rem;
+        width: 100%;
+        margin-top: 1rem;
+    }
+
+    .input-token::placeholder {
+        color: #94a3b8;
+    }
+
+    .input-token:focus {
+        outline: none;
+        border-color: white;
+        background: white;
+    }
+
+    /* Minimal Passenger List */
+    .passenger-list-minimal {
+        background: white;
+        padding: 1rem;
+        border-radius: 10px;
+        margin-bottom: 1rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .list-header {
+        font-size: 0.85rem;
+        color: #94a3b8;
+        margin-bottom: 0.8rem;
+        text-align: center;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .passenger-item-minimal {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.7rem 0;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .passenger-item-minimal:last-child {
+        border-bottom: none;
+    }
+
+    .passenger-info {
+        flex: 1;
+    }
+
+    .passenger-name-minimal {
+        font-size: 0.95rem;
+        color: #475569;
+        font-weight: 600;
+        margin-bottom: 0.2rem;
+    }
+
+    .passenger-time {
+        font-size: 0.8rem;
+        color: #94a3b8;
+    }
+
+    .passenger-time i {
+        margin-right: 0.3rem;
+    }
+
+    .btn-remove-minimal {
+        background: #fee2e2;
+        color: #dc2626;
+        border: none;
+        padding: 0.3rem 0.7rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
         font-weight: 600;
     }
-    
-    /* Fixed bottom action bar */
-    .action-bar {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
+
+    /* Complete Button - Secondary */
+    .btn-complete-minimal {
         background: white;
-        padding: 15px;
-        box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
-        z-index: 1000;
+        border: 2px solid #e5e7eb;
+        color: #6b7280;
+        padding: 1rem;
+        border-radius: 10px;
+        font-size: 1rem;
+        font-weight: 600;
+        width: 100%;
+        margin-top: 1rem;
     }
-    
-    @media (min-width: 768px) {
-        .action-bar {
-            position: relative;
-            box-shadow: none;
-        }
+
+    .btn-complete-minimal:active {
+        background: #f9fafb;
     }
-    
-    .page-content {
-        padding-bottom: 100px; /* Space for fixed button */
+
+    /* Empty State */
+    .empty-minimal {
+        text-align: center;
+        padding: 1.5rem;
+        color: #cbd5e1;
+        font-size: 0.9rem;
     }
-    
-    @media (min-width: 768px) {
-        .page-content {
-            padding-bottom: 20px;
-        }
+
+    /* Modal */
+    .modal-content {
+        border-radius: 15px;
+    }
+
+    .modal-header {
+        border-radius: 15px 15px 0 0;
     }
 </style>
 
-<!-- Content Start -->
-<div class="page-content">
-    <!-- Mobile Header -->
-    <div class="mb-3">
-        <h3 class="fw-bold mb-1"><i class="fas fa-qrcode me-2"></i>สแกน QR Code</h3>
-        <div class="d-flex justify-content-between align-items-center">
-            <small class="text-muted">{{ $trip->route->name }} • {{ $trip->vehicle->license_plate }}</small>
-            <span class="badge bg-success fs-6">
-                <i class="fas fa-circle fa-beat"></i> กำลังทำงาน
-            </span>
+<div class="scan-container">
+    <!-- Minimal Header -->
+    <div class="minimal-header">
+        <div class="header-info">
+            <div class="header-title">{{ $trip->route->name }}</div>
+            <div class="header-detail">
+                {{ $trip->vehicle->license_plate }}
+                @if($trip->status === 'completed')
+                    <span style="margin-left: 0.5rem; padding: 0.2rem 0.6rem; background: #d1ecf1; color: #0c5460; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">
+                        <i class="fas fa-check-circle"></i> เสร็จสิ้น
+                    </span>
+                @endif
+            </div>
         </div>
+        <a href="{{ route('driver.work-center') }}" class="btn-back">
+            <i class="fas fa-arrow-left"></i>
+        </a>
     </div>
 
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <div class="alert alert-success" style="border-radius: 10px; margin-bottom: 1rem; font-size: 0.9rem;">
             <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
 
     @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <div class="alert alert-danger" style="border-radius: 10px; margin-bottom: 1rem; font-size: 0.9rem;">
             <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
 
-    <!-- Passenger Counter - Full width on mobile -->
-    <div class="counter-card">
-        <div class="counter" id="passengerCount">{{ $tripSummary['passenger_count'] ?? 0 }}</div>
-        <h5 class="mb-2">ผู้โดยสาร</h5>
-        <p class="mb-3 opacity-75">{{ $trip->vehicle->capacity }} ที่นั่ง</p>
-        
-        <div class="progress" style="height: 30px; background: rgba(255,255,255,0.3);">
-            <div class="progress-bar bg-success" role="progressbar" id="capacityProgress" 
-                 style="width: {{ $trip->vehicle->capacity > 0 ? round((($tripSummary['passenger_count'] ?? 0) / $trip->vehicle->capacity) * 100) : 0 }}%; font-size: 1.1rem; font-weight: 600;">
-                {{ $trip->vehicle->capacity > 0 ? round((($tripSummary['passenger_count'] ?? 0) / $trip->vehicle->capacity) * 100) : 0 }}%
-            </div>
+    <!-- Compact Counter -->
+    <div class="compact-counter">
+        <div>
+            <span class="counter-number" id="passengerCount">{{ $tripSummary['passenger_count'] ?? 0 }}</span>
+            <span class="counter-label">/ {{ $trip->vehicle->capacity }} คน</span>
         </div>
+        <div class="counter-label">ผู้โดยสาร</div>
     </div>
 
-    <div class="row g-3">
-        <!-- Camera Scanner -->
-        <div class="col-12 col-lg-6">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <i class="fas fa-camera me-2"></i>กล้องสแกน QR Code
-                </div>
-                <div class="card-body p-2">
-                    <div class="scanner-container">
-                        <div id="qr-reader"></div>
-                        <div class="mt-3" id="camera-status">
-                            <div class="alert alert-info">
-                                <i class="fas fa-camera me-2"></i>
-                                <strong>กำลังเตรียมกล้อง...</strong><br>
-                                <small>หากไม่แสดงกล้อง กรุณากดปุ่มด้านล่าง</small>
-                            </div>
-                            <button type="button" class="btn btn-primary btn-lg w-100" onclick="requestCameraPermission()">
-                                <i class="fas fa-video me-2"></i>เปิดกล้อง
-                            </button>
-                        </div>
-                        <div class="mt-3" id="camera-controls" style="display:none;">
-                            <button type="button" class="btn btn-outline-secondary btn-lg" onclick="switchCamera()">
-                                <i class="fas fa-sync-alt me-1"></i> เปลี่ยนกล้อง
-                            </button>
-                        </div>
-                    </div>
-
-                    <div id="scanResult"></div>
-
-                    <div class="mt-3">
-                        <label class="form-label fw-bold"><i class="fas fa-keyboard me-1"></i>หรือพิมพ์โทเค็น:</label>
-                        <input type="text" id="qrcodeInput" class="form-control form-control-lg" 
-                               placeholder="พิมพ์ QR code token" autofocus 
-                               style="font-size: 1.2rem; padding: 15px;">
-                        <small class="text-muted">กด Enter เพื่อยืนยัน</small>
-                    </div>
-                </div>
+    <!-- MAIN: QR Scanner (Most Prominent) -->
+    @if($trip->status === 'active')
+        <div class="scanner-main">
+            <div class="scanner-title">
+                <i class="fas fa-qrcode"></i>สแกน QR Code
             </div>
-        </div>
 
-        <!-- Recent Scans List -->
-        <div class="col-12 col-lg-6">
-            <div class="card">
-                <div class="card-header bg-info text-white">
-                    <i class="fas fa-list me-2"></i>รายชื่อล่าสุด
-                    <button type="button" class="btn btn-sm btn-warning float-end" onclick="cancelLastRecord()">
-                        <i class="fas fa-undo me-1"></i>ยกเลิกล่าสุด
-                    </button>
-                </div>
-                <div class="card-body p-2">
-                    <div class="attendance-list" id="attendanceList">
-                        @if(!empty($recentRecords) && count($recentRecords) > 0)
-                            @foreach($recentRecords as $record)
-                                <div class="attendance-item" style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-right: 5px;">
-                                    <div style="flex: 1; min-width: 0;">
-                                        <div class="fw-bold fs-5">{{ $record['employee_code'] }}</div>
-                                        <div style="overflow: hidden; text-overflow: ellipsis;">{{ $record['employee_name'] }}</div>
-                                        <small class="text-muted"><i class="fas fa-clock me-1"></i>{{ $record['scanned_at'] }}</small>
-                                    </div>
-                                    <button type="button" class="btn btn-danger btn-sm" 
-                                        onclick="cancelSpecificRecord({{ $record['id'] }}, '{{ str_replace("'", "\\'", $record['employee_name']) }}')"
-                                        style="white-space: nowrap; flex-shrink: 0; min-width: 40px; height: 40px;">
-                                        <i class="fas fa-times"></i> ยกเลิก
-                                    </button>
-                                </div>
-                            @endforeach
-                        @else
-                            <div class="text-center py-5 text-muted">
-                                <i class="fas fa-inbox fa-3x mb-3"></i>
-                                <p>ยังไม่มีการสแกน</p>
+            <div id="qr-reader"></div>
+
+            <div id="camera-status" style="margin-top: 1rem;">
+                <button type="button" class="camera-btn" onclick="requestCameraPermission()">
+                    <i class="fas fa-camera"></i>เปิดกล้อง
+                </button>
+            </div>
+
+            <input type="text" id="qrcodeInput" class="input-token" 
+                   placeholder="หรือพิมพ์โทเค็น แล้วกด Enter">
+        </div>
+    @else
+        <div class="alert alert-info" style="border-radius: 10px; margin-bottom: 1rem;">
+            <i class="fas fa-info-circle me-2"></i>รอบนี้เสร็จสิ้นแล้ว ไม่สามารถสแกนเพิ่มได้
+        </div>
+    @endif
+
+    <!-- Minimal Passenger List -->
+    @if($recentRecords && count($recentRecords) > 0)
+        <div class="passenger-list-minimal">
+            <div class="list-header">รายชื่อผู้โดยสาร</div>
+            <div id="passengerListMinimal">
+                @foreach($recentRecords as $record)
+                    <div class="passenger-item-minimal">
+                        <div class="passenger-info">
+                            <div class="passenger-name-minimal">{{ $record['employee_name'] }}</div>
+                            <div class="passenger-time">
+                                <i class="fas fa-clock"></i>{{ $record['scanned_at'] }}
                             </div>
+                        </div>
+                        @if($trip->status === 'active')
+                            <button class="btn-remove-minimal" onclick="cancelSpecificRecord({{ $record['id'] }}, '{{ $record['employee_name'] }}')">
+                                <i class="fas fa-times"></i>
+                            </button>
                         @endif
                     </div>
-                </div>
+                @endforeach
             </div>
         </div>
-    </div>
-</div>
+    @endif
 
-<!-- Fixed Bottom Action Bar (Mobile) -->
-<div class="action-bar">
-    <button type="button" class="btn btn-danger btn-xl w-100" onclick="completeTrip()">
-        <i class="fas fa-stop-circle me-2"></i>ปิดรอบและคำนวณค่าโดยสาร
-    </button>
+    <!-- Complete Button (Minimal) - Only for active trips -->
+    @if($trip->status === 'active')
+        <button type="button" class="btn-complete-minimal" onclick="completeTrip()">
+            <i class="fas fa-check-circle me-2"></i>ปิดรอบนี้
+        </button>
+    @endif
+
+    <form id="completeTripForm" action="{{ route('driver.trip.complete', $trip) }}" method="POST" style="display: none;">
+        @csrf
+    </form>
 </div>
 
 <!-- Confirmation Modal -->
-<div class="modal fade" id="confirmScanModal" tabindex="-1" aria-labelledby="confirmScanModalLabel" aria-hidden="true">
+<div class="modal fade" id="confirmScanModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header bg-success text-white">
-                <h5 class="modal-title" id="confirmScanModalLabel">
-                    <i class="fas fa-check-circle me-2"></i>สแกนสำเร็จ
+                <h5 class="modal-title">
+                    <i class="fas fa-check-circle me-2"></i>ยืนยัน?
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body text-center py-4">
-                <div class="mb-3">
-                    <i class="fas fa-user-circle fa-4x text-success"></i>
-                </div>
+                <i class="fas fa-user-circle fa-4x text-success mb-3"></i>
                 <h4 class="mb-2" id="modalEmployeeName"></h4>
-                <p class="text-muted mb-0">รหัส: <span id="modalEmployeeCode"></span></p>
+                <p class="text-muted">รหัส: <span id="modalEmployeeCode"></span></p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="cancelScan()">
-                    <i class="fas fa-times me-2"></i>ยกเลิก
+                <button type="button" class="btn btn-secondary btn-lg" data-bs-dismiss="modal" onclick="cancelScan()">
+                    ยกเลิก
                 </button>
                 <button type="button" class="btn btn-success btn-lg" onclick="confirmScan()">
                     <i class="fas fa-check me-2"></i>ยืนยัน
@@ -314,521 +381,293 @@
     </div>
 </div>
 
-<form id="completeTripForm" action="{{ route('driver.trip.complete', $trip) }}" method="POST" style="display: none;">
-    @csrf
-    <input type="hidden" name="notes" value="">
-</form>
-
-<form id="cancelRecordForm" action="{{ route('driver.trip.cancel-record', $trip) }}" method="POST" style="display: none;">
-    @csrf
-    <input type="hidden" name="reason" value="ยกเลิกจากหน้าจอของคนขับ">
-</form>
-
 @endsection
 
 @section('scripts')
 <script>
-    // Force reload - v1.1
     const tripId = {{ $trip->id }};
+    const tripStatus = '{{ $trip->status }}';
     let html5QrCode;
-    let cameras = [];
-    let currentCameraIndex = 0;
     let cameraPermissionGranted = false;
-    let pendingRecord = null;
+    let pendingEmployeeData = null;
 
-    // Request camera permission manually
+    document.addEventListener('DOMContentLoaded', function() {
+        // Only initialize camera for active trips
+        if (tripStatus !== 'active') {
+            return;
+        }
+
+        // Check camera permission
+        navigator.permissions.query({ name: 'camera' }).then(permission => {
+            if (permission.state === 'granted') {
+                cameraPermissionGranted = true;
+                const cameraStatus = document.getElementById('camera-status');
+                if (cameraStatus) {
+                    cameraStatus.style.display = 'none';
+                }
+                initCamera();
+            }
+        }).catch(() => {});
+        
+        // Manual input
+        const qrcodeInput = document.getElementById('qrcodeInput');
+        if (qrcodeInput) {
+            qrcodeInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const token = this.value.trim();
+                    if (token) {
+                        processQrCode(token);
+                        this.value = '';
+                    }
+                }
+            });
+        }
+    });
+
     async function requestCameraPermission() {
+        if (tripStatus !== 'active') {
+            alert('รอบนี้เสร็จสิ้นแล้ว ไม่สามารถสแกนเพิ่มได้');
+            return;
+        }
+        
         try {
             document.getElementById('camera-status').innerHTML = `
-                <div class="alert alert-info">
-                    <i class="fas fa-spinner fa-spin me-2"></i>
-                    <strong>กำลังขออนุญาตกล้อง...</strong><br>
-                    <small>กรุณากด "อนุญาต" เมื่อ browser ถาม</small>
+                <div class="alert alert-info" style="background: rgba(255,255,255,0.9); color: #667eea; border: none;">
+                    <i class="fas fa-spinner fa-spin me-2"></i>กำลังขออนุญาต...
                 </div>
             `;
             
-            // Force request permission
             const stream = await navigator.mediaDevices.getUserMedia({ 
                 video: { facingMode: 'environment' } 
             });
             
-            // Stop the stream (we just needed permission)
             stream.getTracks().forEach(track => track.stop());
-            
             cameraPermissionGranted = true;
             document.getElementById('camera-status').style.display = 'none';
-            
-            // Now start the QR scanner
             await initCamera();
             
         } catch (err) {
             console.error('Permission error:', err);
-            let errorMsg = '';
-            
-            if (err.name === 'NotAllowedError') {
-                errorMsg = `
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        <strong>ไม่ได้รับอนุญาตกล้อง</strong><br>
-                        <small>วิธีแก้ไข:</small><br>
-                        <ol class="mb-0 mt-2" style="text-align: left;">
-                            <li>คลิกไอคอนกุญแจ/กล้อง ข้างซ้าย URL bar</li>
-                            <li>เปลี่ยน Camera เป็น "Allow"</li>
-                            <li>Reload หน้านี้</li>
-                        </ol>
-                    </div>
-                    <button type="button" class="btn btn-primary btn-lg w-100 mt-2" onclick="location.reload()">
-                        <i class="fas fa-sync me-2"></i>Reload หน้า
-                    </button>
-                `;
-            } else if (err.name === 'NotFoundError') {
-                errorMsg = `
-                    <div class="alert alert-warning">
-                        <i class="fas fa-camera-slash me-2"></i>
-                        <strong>ไม่พบกล้อง</strong><br>
-                        <small>อุปกรณ์นี้ไม่มีกล้อง หรือกล้องถูกปิดใช้งาน</small>
-                    </div>
-                `;
-            } else if (err.name === 'NotReadableError') {
-                errorMsg = `
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-circle me-2"></i>
-                        <strong>กล้องถูกใช้งานโดยแอปอื่น</strong><br>
-                        <small>กรุณาปิดแอปที่ใช้กล้องอยู่แล้วลองใหม่</small>
-                    </div>
-                    <button type="button" class="btn btn-primary btn-lg w-100 mt-2" onclick="requestCameraPermission()">
-                        <i class="fas fa-redo me-2"></i>ลองอีกครั้ง
-                    </button>
-                `;
-            } else {
-                errorMsg = `
-                    <div class="alert alert-danger">
-                        <i class="fas fa-times-circle me-2"></i>
-                        <strong>เกิดข้อผิดพลาด</strong><br>
-                        <small>${err.message || 'ไม่สามารถเปิดกล้องได้'}</small>
-                    </div>
-                    <button type="button" class="btn btn-primary btn-lg w-100 mt-2" onclick="requestCameraPermission()">
-                        <i class="fas fa-redo me-2"></i>ลองอีกครั้ง
-                    </button>
-                `;
-            }
-            
-            document.getElementById('camera-status').innerHTML = errorMsg;
+            document.getElementById('camera-status').innerHTML = `
+                <div class="alert alert-warning" style="background: rgba(255,255,255,0.9); color: #dc2626; border: none; font-size: 0.9rem;">
+                    <i class="fas fa-exclamation-triangle me-2"></i>ไม่สามารถเข้าถึงกล้อง
+                </div>
+                <button type="button" class="camera-btn" onclick="requestCameraPermission()">
+                    <i class="fas fa-redo me-2"></i>ลองอีกครั้ง
+                </button>
+            `;
         }
     }
 
-    // Initialize camera scanning
     async function initCamera() {
         try {
             html5QrCode = new Html5Qrcode("qr-reader");
             
-            // Get camera list
-            const devices = await Html5Qrcode.getCameras();
-            console.log('Available cameras:', devices);
-            cameras = devices;
+            await html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                (decodedText) => {
+                    processQrCode(decodedText);
+                },
+                (errorMessage) => {}
+            );
             
-            if (devices && devices.length > 0) {
-                // Show camera switch button if multiple cameras
-                if (devices.length > 1) {
-                    document.getElementById('camera-controls').style.display = 'block';
-                }
-                
-                // Start with back camera (usually index 0 on mobile)
-                const cameraId = devices[currentCameraIndex].id;
-                
-                await html5QrCode.start(
-                    cameraId,
-                    {
-                        fps: 10,
-                        qrbox: { width: 250, height: 250 },
-                        aspectRatio: 1.0
-                    },
-                    (decodedText, decodedResult) => {
-                        console.log('Decoded:', decodedText);
-                        processQrcodeToken(decodedText);
-                    },
-                    (errorMessage) => {
-                        // Ignore continuous scanning errors
-                    }
-                );
-                
-                showScanResult('📷 กล้องพร้อมใช้งาน', 'success');
-            } else {
-                showScanResult('❌ ไม่พบกล้อง', 'error');
-            }
+            document.getElementById('camera-status').style.display = 'none';
         } catch (err) {
-            console.error('Camera init error:', err);
-            let errorMsg = '❌ ไม่สามารถเปิดกล้องได้';
-            
-            if (err.message) {
-                if (err.message.includes('Permission')) {
-                    errorMsg = '❌ กรุณาอนุญาตการเข้าถึงกล้อง<br><small>ตั้งค่า → อนุญาตกล้อง → Reload หน้านี้</small>';
-                } else if (err.message.includes('NotFound')) {
-                    errorMsg = '❌ ไม่พบกล้อง';
-                } else if (err.message.includes('NotReadable')) {
-                    errorMsg = '❌ กล้องถูกใช้งานโดยแอปอื่น';
-                }
-            }
-            
-            showScanResult(errorMsg, 'error');
+            console.error("Camera start error:", err);
         }
     }
 
-    // Handle manual input
-    document.getElementById('qrcodeInput').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            processQrcodeToken(this.value.trim());
-            this.value = '';
+    function processQrCode(token) {
+        if (tripStatus !== 'active') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'ไม่สามารถสแกนได้',
+                text: 'รอบนี้เสร็จสิ้นแล้ว',
+                confirmButtonText: 'ตกลง'
+            });
+            return;
         }
-    });
-
-    function processQrcodeToken(token) {
-        if (!token) return;
         
-        fetch(`{{ route('driver.trip.scan-process', $trip) }}`, {
+        fetch(`/driver/trip/${tripId}/scan`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}'
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
             },
-            body: JSON.stringify({
-                qrcode_token: token,
-                latitude: null,
-                longitude: null
-            })
+            body: JSON.stringify({ qrcode_token: token })
         })
-        .then(res => res.json())
+        .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // แสดงปุ่มยืนยัน
-                pendingRecord = data.data;
+                pendingEmployeeData = data.data;
                 showConfirmationDialog(data.data);
-            } else if (data.type === 'duplicate') {
-                // สแกนซ้ำ - แสดง warning แบบเดิม ไม่มีปุ่มยืนยัน
-                showScanResult(data.message, 'warning');
             } else {
-                showScanResult(data.message, 'error');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ไม่สามารถสแกนได้',
+                    text: data.message,
+                    confirmButtonText: 'ตกลง'
+                });
             }
         })
-        .catch(err => {
-            showScanResult('เกิดข้อผิดพลาด: ' + err.message, 'error');
+        .catch(error => {
+            Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาด',
+                text: 'กรุณาลองใหม่',
+                confirmButtonText: 'ตกลง'
+            });
         });
     }
 
-    function showConfirmationDialog(employeeData) {
-        // เติมข้อมูลใน modal
-        document.getElementById('modalEmployeeName').textContent = employeeData.employee_name;
-        document.getElementById('modalEmployeeCode').textContent = employeeData.employee_code;
-        
-        // เปิด modal
+    function showConfirmationDialog(employee) {
+        document.getElementById('modalEmployeeName').textContent = employee.employee_name;
+        document.getElementById('modalEmployeeCode').textContent = employee.employee_code;
         const modal = new bootstrap.Modal(document.getElementById('confirmScanModal'));
         modal.show();
-        
-        // เล่นเสียง
-        try {
-            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBA==');
-            audio.play().catch(() => {});
-        } catch(e) {}
+    }
+
+    function cancelScan() {
+        pendingEmployeeData = null;
     }
 
     function confirmScan() {
-        if (!pendingRecord) return;
+        if (!pendingEmployeeData) return;
 
-        // เรียก API ยืนยันการสแกน
-        fetch(`{{ route('driver.trip.confirm-scan', $trip) }}`, {
+        fetch(`/driver/trip/${tripId}/confirm-scan`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}'
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
             },
-            body: JSON.stringify({
-                employee_id: pendingRecord.employee_id,
-                latitude: null,
-                longitude: null
+            body: JSON.stringify({ 
+                employee_id: pendingEmployeeData.employee_id 
             })
         })
-        .then(res => res.json())
+        .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                // ปิด modal และลบ backdrop (แก้ปัญหาจอดำบนมือถือ)
-                const modal = bootstrap.Modal.getInstance(document.getElementById('confirmScanModal'));
-                if (modal) {
-                    modal.hide();
-                }
-                
-                // ลบ backdrop และ class ที่เหลือค้าง
-                setTimeout(() => {
-                    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-                    document.body.classList.remove('modal-open');
-                    document.body.style.overflow = '';
-                    document.body.style.paddingRight = '';
-                }, 200);
-                
-                // แสดงข้อความสำเร็จพร้อมปุ่มยกเลิก
-                const successHtml = `
-                    <div class="scan-result success">
-                        <h4 class="mb-3">✓ บันทึก ${pendingRecord.employee_name} แล้ว</h4>
-                        <button type="button" class="btn btn-danger btn-sm" onclick="cancelLastRecord()">
-                            <i class="fas fa-undo me-2"></i>ยกเลิกรายการนี้
-                        </button>
-                    </div>
-                `;
-                document.getElementById('scanResult').innerHTML = successHtml;
-                setTimeout(() => {
-                    document.getElementById('scanResult').innerHTML = '';
-                }, 5000);
-                
-                updateAttendanceList();
-            } else {
-                // ปิด modal และลบ backdrop ก่อนแสดง error
-                const modal = bootstrap.Modal.getInstance(document.getElementById('confirmScanModal'));
-                if (modal) {
-                    modal.hide();
-                }
-                setTimeout(() => {
-                    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-                    document.body.classList.remove('modal-open');
-                    document.body.style.overflow = '';
-                    document.body.style.paddingRight = '';
-                }, 200);
-                
-                // แสดง error message
-                const errorType = data.type === 'duplicate' ? 'warning' : 'error';
-                showScanResult(data.message || 'เกิดข้อผิดพลาด', errorType);
-            }
-            pendingRecord = null;
-        })
-        .catch(err => {
-            // ปิด modal และลบ backdrop ก่อนแสดง error
             const modal = bootstrap.Modal.getInstance(document.getElementById('confirmScanModal'));
-            if (modal) {
-                modal.hide();
-            }
+            modal.hide();
+            
             setTimeout(() => {
                 document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
                 document.body.classList.remove('modal-open');
                 document.body.style.overflow = '';
-                document.body.style.paddingRight = '';
             }, 200);
-            
-            showScanResult('เกิดข้อผิดพลาด: ' + err.message, 'error');
-            pendingRecord = null;
-        });
-    }
 
-    function cancelScan() {
-        // ปิด modal และลบ backdrop (แก้ปัญหาจอดำบนมือถือ)
-        const modal = bootstrap.Modal.getInstance(document.getElementById('confirmScanModal'));
-        if (modal) {
-            modal.hide();
-        }
-        
-        // ลบ backdrop และ class ที่เหลือค้าง
-        setTimeout(() => {
-            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-            document.body.classList.remove('modal-open');
-            document.body.style.overflow = '';
-            document.body.style.paddingRight = '';
-        }, 200);
-        
-        if (pendingRecord) {
-            showScanResult('ยกเลิกการสแกนของ ' + pendingRecord.employee_name, 'warning');
-        }
-        pendingRecord = null;
-    }
-
-    function showScanResult(message, type) {
-        const resultDiv = document.getElementById('scanResult');
-        const typeClass = type === 'warning' ? 'error' : type;
-        resultDiv.innerHTML = `<div class="scan-result ${typeClass}">${message}</div>`;
-        setTimeout(() => {
-            resultDiv.innerHTML = '';
-        }, 3000);
-        
-        // Play sound for success
-        if (type === 'success') {
-            try {
-                const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBSmBzvLZiTYIGWS56+OhUA0PUajn77tuGwU+ldv0xXksBA==');
-                audio.play().catch(() => {});
-            } catch(e) {}
-        }
-    }
-
-    function updateAttendanceList() {
-        fetch(`{{ route('driver.trip.recent-records', $trip) }}`)
-            .then(res => res.json())
-            .then(data => {
-                console.log('API Response:', data); // Debug
-                console.log('Records:', data.records); // Debug
-                
-                const count = data.passenger_count !== undefined ? data.passenger_count : 0;
-                const capacity = {{ $trip->vehicle->capacity }};
-                
-                console.log('Passenger count:', count); // Debug
-                
-                // Update counter
-                document.getElementById('passengerCount').innerText = count;
-                
-                // Update progress bar
-                const percentage = capacity > 0 ? Math.round((count / capacity) * 100) : 0;
-                const progressBar = document.getElementById('capacityProgress');
-                progressBar.style.width = percentage + '%';
-                progressBar.innerText = percentage + '%';
-                
-                // Change color based on capacity
-                progressBar.className = 'progress-bar ' + 
-                    (percentage >= 90 ? 'bg-danger' : (percentage >= 70 ? 'bg-warning' : 'bg-success'));
-                
-                // Update list - แสดงทั้งหมด
-                if (data.records && data.records.length > 0) {
-                    const listHtml = data.records.map(r =>
-                        `<div class="attendance-item" style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-right: 5px;">
-                            <div style="flex: 1; min-width: 0;">
-                                <div class="fw-bold fs-5">${r.employee_code}</div>
-                                <div style="overflow: hidden; text-overflow: ellipsis;">${r.employee_name}</div>
-                                <small class="text-muted"><i class="fas fa-clock me-1"></i>${r.scanned_at}</small>
-                            </div>
-                            <button type="button" class="btn btn-danger btn-sm" onclick="cancelSpecificRecord(${r.id}, '${r.employee_name.replace(/'/g, "\\'")}')"
-                                style="white-space: nowrap; flex-shrink: 0; min-width: 40px; height: 40px;">
-                                <i class="fas fa-times"></i> ยกเลิก
-                            </button>
-                        </div>`
-                    ).join('');
-                    document.getElementById('attendanceList').innerHTML = listHtml;
-                } else {
-                    document.getElementById('attendanceList').innerHTML = 
-                        `<div class="text-center py-5 text-muted">
-                            <i class="fas fa-inbox fa-3x mb-3"></i>
-                            <p>ยังไม่มีการสแกน</p>
-                        </div>`;
-                }
-            })
-            .catch(err => {
-                console.error('Update list error:', err);
-            });
-    }
-
-    async function switchCamera() {
-        try {
-            if (cameras.length <= 1) return;
-            
-            // Stop current camera
-            if (html5QrCode) {
-                await html5QrCode.stop();
-            }
-            
-            // Switch to next camera
-            currentCameraIndex = (currentCameraIndex + 1) % cameras.length;
-            
-            showScanResult('🔄 กำลังเปลี่ยนกล้อง...', 'success');
-            
-            // Start with new camera
-            const cameraId = cameras[currentCameraIndex].id;
-            await html5QrCode.start(
-                cameraId,
-                {
-                    fps: 10,
-                    qrbox: { width: 250, height: 250 },
-                    aspectRatio: 1.0
-                },
-                (decodedText, decodedResult) => {
-                    processQrcodeToken(decodedText);
-                },
-                (errorMessage) => {
-                    // Ignore
-                }
-            );
-            
-                    showScanResult('✓ เปลี่ยนกล้องแล้ว', 'success');
-        } catch (err) {
-            console.error('Switch camera error:', err);
-            showScanResult('❌ ไม่สามารถเปลี่ยนกล้องได้', 'error');
-        }
-    }
-
-    function cancelLastRecord() {
-        // ลบ confirm dialog เพราะเพิ่งยืนยันเสร็จ
-        document.getElementById('scanResult').innerHTML = '<div class="scan-result">กำลังยกเลิก...</div>';
-
-        fetch(`{{ route('driver.trip.cancel-record', $trip) }}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}'
-            },
-            body: JSON.stringify({
-                reason: 'ยกเลิกจากหน้าจอของคนขับ'
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
             if (data.success) {
-                showScanResult('✓ ยกเลิกรายการล่าสุดเรียบร้อย', 'warning');
-                updateAttendanceList();
+                updatePassengerCount(data.passenger_count);
+                updatePassengerList(data.records);
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'บันทึกสำเร็จ',
+                    text: `${pendingEmployeeData.employee_name}`,
+                    timer: 1500,
+                    showConfirmButton: false
+                });
             } else {
-                showScanResult(data.message || 'ไม่สามารถยกเลิกได้', 'error');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ไม่สามารถบันทึกได้',
+                    text: data.message,
+                    confirmButtonText: 'ตกลง'
+                });
             }
-        })
-        .catch(err => {
-            showScanResult('เกิดข้อผิดพลาด', 'error');
+
+            pendingEmployeeData = null;
         });
+    }
+
+    function updatePassengerCount(count) {
+        document.getElementById('passengerCount').textContent = count;
+    }
+
+    function updatePassengerList(records) {
+        const listContainer = document.getElementById('passengerListMinimal');
+        if (!listContainer) return;
+        
+        const listHtml = records.map(r => `
+            <div class="passenger-item-minimal">
+                <div class="passenger-info">
+                    <div class="passenger-name-minimal">${r.employee_name}</div>
+                    <div class="passenger-time">
+                        <i class="fas fa-clock"></i>${r.scanned_at}
+                    </div>
+                </div>
+                <button class="btn-remove-minimal" onclick="cancelSpecificRecord(${r.id}, '${r.employee_name}')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `).join('');
+
+        listContainer.innerHTML = listHtml || `<div class="empty-minimal">ยังไม่มีผู้โดยสาร</div>`;
     }
 
     function cancelSpecificRecord(recordId, employeeName) {
-        if (!confirm(`ต้องการยกเลิกรายการของ ${employeeName}?`)) {
+        if (tripStatus !== 'active') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'ไม่สามารถยกเลิกได้',
+                text: 'รอบนี้เสร็จสิ้นแล้ว',
+                confirmButtonText: 'ตกลง'
+            });
             return;
         }
-
-        fetch(`{{ url('driver/trip/' . $trip->id . '/cancel-specific-record') }}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}'
-            },
-            body: JSON.stringify({
-                record_id: recordId,
-                reason: 'ยกเลิกจากรายชื่อ'
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                showScanResult(`✓ ยกเลิก ${employeeName} เรียบร้อย`, 'warning');
-                updateAttendanceList();
-            } else {
-                showScanResult(data.message || 'ไม่สามารถยกเลิกได้', 'error');
+        
+        Swal.fire({
+            title: 'ยืนยันการยกเลิก?',
+            text: `ยกเลิก ${employeeName}`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'ใช่',
+            cancelButtonText: 'ไม่'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/driver/trip/${tripId}/cancel-specific-record`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({ record_id: recordId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updatePassengerCount(data.passenger_count);
+                        updatePassengerList(data.records);
+                        
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'ยกเลิกสำเร็จ',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                    }
+                });
             }
-        })
-        .catch(err => {
-            showScanResult('เกิดข้อผิดพลาด: ' + err.message, 'error');
         });
     }
 
     function completeTrip() {
-        if (confirm('ปิดรอบนี้?')) {
-            document.getElementById('completeTripForm').submit();
-        }
+        Swal.fire({
+            title: 'ปิดรอบนี้?',
+            text: `ผู้โดยสาร ${document.getElementById('passengerCount').textContent} คน`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'ยืนยัน',
+            cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('completeTripForm').submit();
+            }
+        });
     }
 
-    // Start camera on load - but don't force it
-    window.addEventListener('load', () => {
-        // ไม่เรียก updateAttendanceList() ทันที ให้ใช้ข้อมูลจาก Blade ก่อน
-        // จะ update ก็ต่อเมื่อมีการสแกนใหม่
-        
-        // Check if permission was previously granted
-        navigator.permissions.query({ name: 'camera' }).then(permission => {
-            if (permission.state === 'granted') {
-                cameraPermissionGranted = true;
-                document.getElementById('camera-status').style.display = 'none';
-                setTimeout(initCamera, 500);
-            }
-            // If denied or prompt, show the manual button
-        }).catch(() => {
-            // Permissions API not supported, just show the button
-        });
-    });
-    
-    // Stop camera when leaving page
+    // Stop camera when leaving
     window.addEventListener('beforeunload', () => {
         if (html5QrCode) {
             html5QrCode.stop().catch(() => {});

@@ -11,7 +11,7 @@ Route::get('/', function () {
     if (auth()->check()) {
         return match (auth()->user()->role) {
             'admin' => redirect()->route('admin.dashboard'),
-            'driver' => redirect()->route('driver.dashboard'),
+            'driver' => redirect()->route('driver.work-center'),
             'supervisor' => redirect()->route('reports.daily'),
             default => redirect()->route('employee.dashboard'),
         };
@@ -83,8 +83,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // ============ Driver Routes ============
     Route::middleware(['role:driver'])->prefix('driver')->name('driver.')->group(function () {
-        Route::get('/dashboard', [DriverController::class, 'dashboard'])->name('dashboard');
-        Route::get('/trip/start', [DriverController::class, 'startTripForm'])->name('trip.start-form');
+        Route::get('/work-center', [DriverController::class, 'workCenter'])->name('work-center');
         Route::post('/trip/start', [DriverController::class, 'startTrip'])->name('trip.start');
         Route::get('/trip/{trip}/scan', [DriverController::class, 'scanScreen'])->name('trip.scan');
         Route::post('/trip/{trip}/scan', [DriverController::class, 'processQrcodeScan'])->name('trip.scan-process');
@@ -94,7 +93,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/trip/{trip}/cancel-specific-record', [DriverController::class, 'cancelSpecificRecord'])->name('trip.cancel-specific-record');
         Route::post('/trip/{trip}/complete', [DriverController::class, 'completeTrip'])->name('trip.complete');
         Route::get('/trip/{trip}/summary', [DriverController::class, 'tripSummary'])->name('trip-summary');
-        Route::get('/today-trips', [DriverController::class, 'todayTrips'])->name('today-trips');
     });
 
     // ============ Reports & Supervisor Routes ============

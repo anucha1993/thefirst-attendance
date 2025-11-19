@@ -79,6 +79,20 @@
                 </div>
             </div>
 
+            <!-- Vehicle Selection (Only for Driver) -->
+            <div class="mb-3" id="vehicleSection" style="display: none;">
+                <label class="form-label">รถที่สามารถใช้งานได้ <i class="fas fa-car ms-1"></i></label>
+                <select class="form-select" id="vehicleSelect" name="vehicles[]" multiple="multiple">
+                    @foreach($vehicles as $vehicle)
+                        <option value="{{ $vehicle->id }}" 
+                                {{ in_array($vehicle->id, old('vehicles', [])) ? 'selected' : '' }}>
+                            {{ $vehicle->license_plate }} - {{ $vehicle->brand }} {{ $vehicle->model }}
+                        </option>
+                    @endforeach
+                </select>
+                <small class="text-muted">เลือกรถที่คนขับคนนี้สามารถใช้งานได้ (เลือกได้มากกว่า 1 คัน)</small>
+            </div>
+
             <div class="alert alert-info" role="alert">
                 <i class="fas fa-info-circle me-2"></i>
                 <strong>คำอธิบายบทบาท:</strong>
@@ -99,4 +113,35 @@
         </form>
     </div>
 </div>
+
+@push('scripts')
+<script>
+    $(document).ready(function() {
+        // Initialize Select2 with Bootstrap 5 theme
+        $('#vehicleSelect').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'เลือกรถ...',
+            allowClear: true,
+            width: '100%'
+        });
+
+        // Show/hide vehicle section based on role selection
+        $('#role').on('change', function() {
+            const vehicleSection = $('#vehicleSection');
+            if (this.value === 'driver') {
+                vehicleSection.show();
+            } else {
+                vehicleSection.hide();
+                // Clear selection when not driver
+                $('#vehicleSelect').val(null).trigger('change');
+            }
+        });
+
+        // Trigger on page load to check initial value
+        if ($('#role').val() === 'driver') {
+            $('#vehicleSection').show();
+        }
+    });
+</script>
+@endpush
 @endsection
