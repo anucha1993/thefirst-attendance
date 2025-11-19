@@ -523,6 +523,15 @@
     }
 
     function showConfirmationDialog(employee) {
+        // Pause camera during confirmation
+        if (html5QrCode) {
+            try {
+                html5QrCode.pause(true);
+            } catch(e) {
+                console.log('Camera pause not available');
+            }
+        }
+        
         document.getElementById('modalEmployeeName').textContent = employee.employee_name;
         document.getElementById('modalEmployeeCode').textContent = employee.employee_code;
         const modal = new bootstrap.Modal(document.getElementById('confirmScanModal'));
@@ -531,6 +540,14 @@
 
     function cancelScan() {
         pendingEmployeeData = null;
+        // Resume camera after cancel
+        if (html5QrCode) {
+            try {
+                html5QrCode.resume();
+            } catch(e) {
+                console.log('Camera resume not available');
+            }
+        }
     }
 
     function confirmScan() {
@@ -555,6 +572,15 @@
                 document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
                 document.body.classList.remove('modal-open');
                 document.body.style.overflow = '';
+                
+                // Resume camera after modal closes
+                if (html5QrCode) {
+                    try {
+                        html5QrCode.resume();
+                    } catch(e) {
+                        console.log('Camera resume not available');
+                    }
+                }
             }, 200);
 
             if (data.success) {
@@ -586,8 +612,13 @@
     }
 
     function updatePassengerList(records) {
-        const listContainer = document.getElementById('passengerListMinimal');
-        if (!listContainer) return;
+        const listSection = document.getElementById('passengerListSection');
+        if (!listSection) return;
+        
+        if (!records || records.length === 0) {
+            listSection.innerHTML = '';
+            return;
+        }
         
         const listHtml = records.map(r => `
             <div class="passenger-item-minimal">
@@ -597,13 +628,22 @@
                         <i class="fas fa-clock"></i>${r.scanned_at}
                     </div>
                 </div>
-                <button class="btn-remove-minimal" onclick="cancelSpecificRecord(${r.id}, '${r.employee_name}')">
-                    <i class="fas fa-times"></i>
-                </button>
+                ${tripStatus === 'active' ? `
+                    <button class="btn-remove-minimal" onclick="cancelSpecificRecord(${r.id}, '${r.employee_name}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                ` : ''}
             </div>
         `).join('');
 
-        listContainer.innerHTML = listHtml || `<div class="empty-minimal">ยังไม่มีผู้โดยสาร</div>`;
+        listSection.innerHTML = `
+            <div class="passenger-list-minimal">
+                <div class="list-header">รายชื่อผู้โดยสาร</div>
+                <div id="passengerListMinimal">
+                    ${listHtml}
+                </div>
+            </div>
+        `;
     }
 
     function cancelSpecificRecord(recordId, employeeName) {
