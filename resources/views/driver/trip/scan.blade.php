@@ -605,22 +605,8 @@
             const modal = bootstrap.Modal.getInstance(document.getElementById('confirmScanModal'));
             modal.hide();
             
-            setTimeout(() => {
-                document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-                document.body.classList.remove('modal-open');
-                document.body.style.overflow = '';
-                
-                // Resume camera after modal closes
-                if (html5QrCode) {
-                    try {
-                        html5QrCode.resume();
-                    } catch(e) {
-                        console.log('Camera resume not available');
-                    }
-                }
-            }, 200);
-
             if (data.success) {
+                // Update UI immediately
                 updatePassengerCount(data.passenger_count);
                 updatePassengerList(data.records);
                 
@@ -641,18 +627,43 @@
             }
 
             pendingEmployeeData = null;
+            
+            // Clean up modal backdrop and resume camera after UI update
+            setTimeout(() => {
+                document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                document.body.classList.remove('modal-open');
+                document.body.style.overflow = '';
+                
+                // Resume camera after everything is done
+                if (html5QrCode) {
+                    try {
+                        html5QrCode.resume();
+                    } catch(e) {
+                        console.log('Camera resume not available');
+                    }
+                }
+            }, 300);
         });
     }
 
     function updatePassengerCount(count) {
-        document.getElementById('passengerCount').textContent = count;
+        console.log('Updating count to:', count);
+        const countElement = document.getElementById('passengerCount');
+        if (countElement) {
+            countElement.textContent = count;
+        }
     }
 
     function updatePassengerList(records) {
+        console.log('Updating passenger list:', records);
         const listSection = document.getElementById('passengerListSection');
-        if (!listSection) return;
+        if (!listSection) {
+            console.error('passengerListSection not found!');
+            return;
+        }
         
         if (!records || records.length === 0) {
+            console.log('No records, clearing list');
             listSection.innerHTML = '';
             return;
         }
@@ -681,6 +692,8 @@
                 </div>
             </div>
         `;
+        
+        console.log('Passenger list updated successfully');
     }
 
     function cancelSpecificRecord(recordId, employeeName) {
@@ -714,6 +727,7 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
+                        // Force immediate UI update
                         updatePassengerCount(data.passenger_count);
                         updatePassengerList(data.records);
                         
@@ -723,7 +737,23 @@
                             timer: 1500,
                             showConfirmButton: false
                         });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: data.message || 'กรุณาลองใหม่',
+                            confirmButtonText: 'ตกลง'
+                        });
                     }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: 'กรุณาลองใหม่',
+                        confirmButtonText: 'ตกลง'
+                    });
                 });
             }
         });
