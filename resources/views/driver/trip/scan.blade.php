@@ -304,16 +304,16 @@
             <div id="qr-reader"></div>
 
             <div id="camera-status" style="margin-top: 1rem;">
-                {{-- <button type="button" class="camera-btn" onclick="requestCameraPermission()">
+                <button type="button" class="camera-btn" onclick="requestCameraPermission()">
                     <i class="fas fa-camera"></i>เปิดกล้อง
-                </button> --}}
+                </button>
             </div>
 
             <div id="camera-controls" style="margin-top: 1rem; display: none;">
                 <div style="display: flex; gap: 0.5rem;">
-                    <button type="button" class="camera-btn" onclick="stopCamera()" style="background: #ef4444; color: white;">
+                    {{-- <button type="button" class="camera-btn" onclick="stopCamera()" style="background: #ef4444; color: white;">
                         <i class="fas fa-times-circle"></i>ปิดกล้อง
-                    </button>
+                    </button> --}}
                     <button type="button" class="camera-btn" onclick="location.reload()" style="background: #f59e0b; color: white;">
                         <i class="fas fa-sync-alt"></i>รีเฟรช
                     </button>
