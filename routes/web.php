@@ -62,6 +62,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('/employees/{employee}', [AdminController::class, 'employeesUpdate'])->name('employees.update');
         Route::get('/employees/{employee}/qrcode', [AdminController::class, 'employeesShowQrCode'])->name('employees.qrcode');
         Route::get('/employees/qrcode/bulk', [AdminController::class, 'employeesBulkQrCode'])->name('employees.qrcode-bulk');
+        Route::post('/employees/import', [AdminController::class, 'employeesImport'])->name('employees.import');
+        Route::get('/employees/template/download', [AdminController::class, 'employeesExportTemplate'])->name('employees.template');
         Route::delete('/employees/{employee}', [AdminController::class, 'employeesDestroy'])->name('employees.destroy');
 
         // Fare rules management

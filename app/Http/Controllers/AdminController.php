@@ -215,12 +215,42 @@ class AdminController extends Controller
     /**
      * Employees management
      */
-    public function employeesIndex()
+    public function employeesIndex(Request $request)
     {
-        $employees = Employee::with('user')
-            ->orderBy('employee_code')
-            ->paginate(20);
-        return view('admin.employees.index', compact('employees'));
+        $query = Employee::with('user');
+
+        // Search by employee_code, name, department, position
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('employee_code', 'like', "%{$search}%")
+                  ->orWhere('first_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%")
+                  ->orWhere('department', 'like', "%{$search}%")
+                  ->orWhere('position', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter by status
+        if ($request->filled('status')) {
+            $query->where('is_active', $request->status);
+        }
+
+        // Filter by department
+        if ($request->filled('department')) {
+            $query->where('department', $request->department);
+        }
+
+        $employees = $query->orderBy('employee_code')->paginate(20)->withQueryString();
+        
+        // Get distinct departments for filter dropdown
+        $departments = Employee::distinct()
+            ->whereNotNull('department')
+            ->pluck('department')
+            ->sort();
+
+        return view('admin.employees.index', compact('employees', 'departments'));
     }
 
     public function employeesCreate()
@@ -305,6 +335,51 @@ class AdminController extends Controller
         });
 
         return view('admin.employees.qrcode-bulk', compact('employeeData'));
+    }
+
+    public function employeesImport(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls,csv|max:10240', // Max 10MB
+        ], [
+            'file.required' => 'กรุณาเลือกไฟล์',
+            'file.mimes' => 'ไฟล์ต้องเป็น Excel (.xlsx, .xls) หรือ CSV เท่านั้น',
+            'file.max' => 'ไฟล์ต้องมีขนาดไม่เกิน 10MB',
+        ]);
+
+        try {
+            $file = $request->file('file');
+            
+            // Import using the EmployeesImport class
+            \Maatwebsite\Excel\Facades\Excel::import(new \App\Imports\EmployeesImport, $file);
+            
+            return redirect()->route('admin.employees.index')
+                ->with('success', 'นำเข้าข้อมูลพนักงานสำเร็จ');
+                
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            $failures = $e->failures();
+            
+            $errors = [];
+            foreach ($failures as $failure) {
+                $errors[] = "แถว {$failure->row()}: " . implode(', ', $failure->errors());
+            }
+            
+            return redirect()->route('admin.employees.index')
+                ->with('error', 'พบข้อผิดพลาดในการนำเข้าข้อมูล')
+                ->with('import_errors', $errors);
+                
+        } catch (\Exception $e) {
+            return redirect()->route('admin.employees.index')
+                ->with('error', 'เกิดข้อผิดพลาด: ' . $e->getMessage());
+        }
+    }
+
+    public function employeesExportTemplate()
+    {
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\EmployeesTemplateExport, 
+            'employee_import_template.xlsx'
+        );
     }
 
     public function employeesDestroy(Employee $employee)

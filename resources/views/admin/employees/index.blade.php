@@ -7,15 +7,78 @@
         <button type="button" id="printSelectedBtn" class="btn btn-info me-2" style="display:none;">
             <i class="fas fa-print me-1"></i>Print Selected QR Codes (<span id="selectedCount">0</span>)
         </button>
+        <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#importModal">
+            <i class="fas fa-file-excel me-1"></i>Import Excel
+        </button>
         <a href="{{ route('admin.employees.create') }}" class="btn btn-primary">
             <i class="fas fa-plus me-1"></i>Add Employee
         </a>
     </div>
 </div>
 
+<!-- Search and Filter Form -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form action="{{ route('admin.employees.index') }}" method="GET" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label"><i class="fas fa-search me-1"></i>ค้นหา</label>
+                <input type="text" name="search" class="form-control" 
+                       placeholder="รหัสพนักงาน, ชื่อ, แผนก, ตำแหน่ง, อีเมล" 
+                       value="{{ request('search') }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label"><i class="fas fa-building me-1"></i>แผนก</label>
+                <select name="department" class="form-select">
+                    <option value="">-- ทั้งหมด --</option>
+                    @foreach($departments as $dept)
+                        <option value="{{ $dept }}" {{ request('department') == $dept ? 'selected' : '' }}>
+                            {{ $dept }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label"><i class="fas fa-toggle-on me-1"></i>สถานะ</label>
+                <select name="status" class="form-select">
+                    <option value="">-- ทั้งหมด --</option>
+                    <option value="1" {{ request('status') === '1' ? 'selected' : '' }}>Active</option>
+                    <option value="0" {{ request('status') === '0' ? 'selected' : '' }}>Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="fas fa-search me-1"></i>ค้นหา
+                </button>
+                <a href="{{ route('admin.employees.index') }}" class="btn btn-secondary">
+                    <i class="fas fa-redo me-1"></i>รีเซ็ต
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
 @if(session('success'))
     <div class="alert alert-success alert-dismissible fade show" role="alert">
         <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>{{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
+@if(session('import_errors'))
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <strong><i class="fas fa-exclamation-triangle me-2"></i>รายละเอียดข้อผิดพลาด:</strong>
+        <ul class="mb-0 mt-2">
+            @foreach(session('import_errors') as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 @endif
@@ -70,7 +133,13 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="text-center text-muted py-4">No employees found</td>
+                        <td colspan="8" class="text-center text-muted py-4">
+                            @if(request()->hasAny(['search', 'department', 'status']))
+                                <i class="fas fa-search me-2"></i>ไม่พบข้อมูลที่ค้นหา
+                            @else
+                                No employees found
+                            @endif
+                        </td>
                     </tr>
                 @endforelse
             </tbody>
@@ -80,6 +149,52 @@
 
 <div class="d-flex justify-content-center mt-4">
     {{ $employees->links() }}
+</div>
+
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importModalLabel">
+                    <i class="fas fa-file-excel me-2"></i>นำเข้าข้อมูลพนักงานจาก Excel
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('admin.employees.import') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>รูปแบบไฟล์:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>ไฟล์ Excel (.xlsx, .xls) หรือ CSV</li>
+                            <li>ขนาดไฟล์ไม่เกิน 10MB</li>
+                            <li>คอลัมน์ต้องมี: employee_code, first_name, last_name</li>
+                            <li>QR Code จะถูกสร้างอัตโนมัติถ้าไม่ระบุ</li>
+                        </ul>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="importFile" class="form-label">เลือกไฟล์ Excel</label>
+                        <input type="file" class="form-control" id="importFile" name="file" accept=".xlsx,.xls,.csv" required>
+                    </div>
+
+                    <div class="text-center">
+                        <a href="{{ route('admin.employees.template') }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-download me-1"></i>ดาวน์โหลดไฟล์ตัวอย่าง
+                        </a>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-upload me-1"></i>นำเข้าข้อมูล
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 @endsection
