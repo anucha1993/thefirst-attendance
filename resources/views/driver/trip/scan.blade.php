@@ -309,6 +309,17 @@
                 </button>
             </div>
 
+            <div id="camera-controls" style="margin-top: 1rem; display: none;">
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="button" class="camera-btn" onclick="stopCamera()" style="background: #ef4444; color: white;">
+                        <i class="fas fa-times-circle"></i>ปิดกล้อง
+                    </button>
+                    <button type="button" class="camera-btn" onclick="location.reload()" style="background: #f59e0b; color: white;">
+                        <i class="fas fa-sync-alt"></i>รีเฟรช
+                    </button>
+                </div>
+            </div>
+
             <input type="text" id="qrcodeInput" class="input-token" 
                    placeholder="หรือพิมพ์โทเค็น แล้วกด Enter">
         </div>
@@ -370,7 +381,7 @@
                 <p class="text-muted">รหัส: <span id="modalEmployeeCode"></span></p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-lg" data-bs-dismiss="modal" onclick="cancelScan()">
+                <button type="button" class="btn btn-secondary btn-lg" onclick="cancelScan()">
                     ยกเลิก
                 </button>
                 <button type="button" class="btn btn-success btn-lg" onclick="confirmScan()">
@@ -474,8 +485,21 @@
             );
             
             document.getElementById('camera-status').style.display = 'none';
+            document.getElementById('camera-controls').style.display = 'block';
         } catch (err) {
             console.error("Camera start error:", err);
+        }
+    }
+
+    function stopCamera() {
+        if (html5QrCode) {
+            html5QrCode.stop().then(() => {
+                document.getElementById('camera-status').style.display = 'block';
+                document.getElementById('camera-controls').style.display = 'none';
+                html5QrCode = null;
+            }).catch(err => {
+                console.error('Stop camera error:', err);
+            });
         }
     }
 
@@ -540,14 +564,27 @@
 
     function cancelScan() {
         pendingEmployeeData = null;
-        // Resume camera after cancel
-        if (html5QrCode) {
-            try {
-                html5QrCode.resume();
-            } catch(e) {
-                console.log('Camera resume not available');
-            }
+        
+        // Close modal and clean up backdrop
+        const modal = bootstrap.Modal.getInstance(document.getElementById('confirmScanModal'));
+        if (modal) {
+            modal.hide();
         }
+        
+        setTimeout(() => {
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            
+            // Resume camera after cancel
+            if (html5QrCode) {
+                try {
+                    html5QrCode.resume();
+                } catch(e) {
+                    console.log('Camera resume not available');
+                }
+            }
+        }, 200);
     }
 
     function confirmScan() {
