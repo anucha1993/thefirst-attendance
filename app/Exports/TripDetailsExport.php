@@ -50,6 +50,12 @@ class TripDetailsExport implements FromCollection, WithHeadings, WithMapping, Wi
         static $index = 0;
         $index++;
 
+        // Calculate fare per passenger
+        $farePerPassenger = 0;
+        if ($this->trip->total_fare && $this->trip->passenger_count > 0) {
+            $farePerPassenger = $this->trip->total_fare / $this->trip->passenger_count;
+        }
+
         return [
             $index,
             $record->employee->employee_code,
@@ -60,8 +66,8 @@ class TripDetailsExport implements FromCollection, WithHeadings, WithMapping, Wi
             $record->employee->phone ?? '-',
             $record->employee->email ?? '-',
             $record->scanned_at->format('d/m/Y H:i:s'),
-            $record->fare_amount ?? 0,
-            $record->is_cancelled ? 'ยกเลิก' : 'ปกติ',
+            number_format($farePerPassenger, 2),
+            $record->deleted_at ? 'ยกเลิก' : 'ปกติ',
         ];
     }
 

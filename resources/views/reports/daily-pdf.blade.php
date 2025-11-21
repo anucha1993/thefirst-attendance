@@ -107,7 +107,7 @@
                     <td>{{ $trip->id }}</td>
                     <td>{{ $trip->started_at->format('d/m/Y') }}</td>
                     <td>{{ $trip->started_at->format('H:i') }}</td>
-                    <td>{{ $trip->completed_at ? $trip->completed_at->format('H:i') : '-' }}</td>
+                    <td>{{ $trip->ended_at ? $trip->ended_at->format('H:i') : '-' }}</td>
                     <td>{{ $trip->route->name }}</td>
                     <td>{{ $trip->route->pickupLocation->name }}</td>
                     <td>{{ $trip->route->dropoffLocation->name }}</td>

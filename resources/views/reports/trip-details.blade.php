@@ -40,8 +40,8 @@
 
                             <dt class="col-sm-5">เวลาสิ้นสุด:</dt>
                             <dd class="col-sm-7">
-                                @if($trip->completed_at)
-                                    {{ $trip->completed_at->format('H:i น.') }}
+                                @if($trip->ended_at)
+                                    {{ $trip->ended_at->format('H:i น.') }}
                                 @else
                                     <span class="badge bg-warning">ยังไม่เสร็จสิ้น</span>
                                 @endif
@@ -49,8 +49,8 @@
 
                             <dt class="col-sm-5">ระยะเวลา:</dt>
                             <dd class="col-sm-7">
-                                @if($trip->completed_at)
-                                    {{ $trip->started_at->diffInMinutes($trip->completed_at) }} นาที
+                                @if($trip->ended_at)
+                                    {{ number_format($trip->started_at->diffInMinutes($trip->ended_at), 2) }} นาที
                                 @else
                                     -
                                 @endif

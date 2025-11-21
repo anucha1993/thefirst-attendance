@@ -23,7 +23,8 @@ class DailyReportExport implements FromCollection, WithHeadings, WithMapping, Wi
     public function collection()
     {
         return Trip::whereDate('started_at', $this->date)
-            ->with(['vehicle', 'route.pickupLocation', 'route.dropoffLocation', 'driver', 'attendanceRecords'])
+            ->with(['vehicle', 'route.pickupLocation', 'route.dropoffLocation', 'driver', 'attendanceRecords.employee'])
+            ->withCount('attendanceRecords')
             ->orderBy('started_at')
             ->get();
     }
@@ -64,7 +65,7 @@ class DailyReportExport implements FromCollection, WithHeadings, WithMapping, Wi
             $trip->id,
             $trip->started_at->format('d/m/Y'),
             $trip->started_at->format('H:i'),
-            $trip->completed_at ? $trip->completed_at->format('H:i') : '-',
+            $trip->ended_at ? $trip->ended_at->format('H:i') : '-',
             $trip->route->name,
             $trip->route->pickupLocation->name,
             $trip->route->dropoffLocation->name,

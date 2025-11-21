@@ -125,6 +125,10 @@ class ReportController extends Controller
      */
     public function tripDetails(Trip $trip)
     {
+        // Refresh trip data to get latest status
+        $trip->refresh();
+        $trip->load(['route.pickupLocation', 'route.dropoffLocation', 'vehicle', 'driver']);
+        
         $records = $trip->attendanceRecords()
             ->with('employee')
             ->orderBy('scanned_at')
