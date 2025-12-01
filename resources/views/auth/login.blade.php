@@ -417,7 +417,7 @@
                 </form>
 
                 <!-- Demo Credentials -->
-                <div class="demo-section">
+                {{-- <div class="demo-section">
                     <div class="demo-title">
                         <i class="fas fa-info-circle"></i> Demo Accounts
                     </div>
@@ -435,7 +435,7 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </div> --}}
     </div>
 
     <!-- Bootstrap JS -->

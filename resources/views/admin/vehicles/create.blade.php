@@ -27,6 +27,13 @@
                     </div>
 
                     <div class="mb-3">
+                        <label class="form-label fw-bold">ชื่อบริษัทขนส่ง</label>
+                        <input type="text" class="form-control @error('transport_company') is-invalid @enderror" 
+                               name="transport_company" value="{{ old('transport_company') }}" placeholder="e.g., บริษัท ขนส่ง ABC จำกัด">
+                        @error('transport_company') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label fw-bold">Capacity *</label>
                         <input type="number" class="form-control @error('capacity') is-invalid @enderror" 
                                name="capacity" value="{{ old('capacity') }}" placeholder="30" min="1" required>

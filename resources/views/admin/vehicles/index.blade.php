@@ -22,6 +22,7 @@
                 <tr>
                     <th>License Plate</th>
                     <th>Model</th>
+                    <th>บริษัทขนส่ง</th>
                     <th>Capacity</th>
                     <th>Status</th>
                     <th>Driver</th>
@@ -34,6 +35,7 @@
                     <tr>
                         <td><strong>{{ $vehicle->license_plate }}</strong></td>
                         <td>{{ $vehicle->vehicle_model ?? '-' }}</td>
+                        <td>{{ $vehicle->transport_company ?? '-' }}</td>
                         <td>{{ $vehicle->capacity }} seats</td>
                         <td>
                             <span class="badge bg-{{ $vehicle->status === 'active' ? 'success' : ($vehicle->status === 'maintenance' ? 'warning' : 'danger') }}">
@@ -56,7 +58,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="text-center text-muted py-4">No vehicles found</td>
+                        <td colspan="8" class="text-center text-muted py-4">No vehicles found</td>
                     </tr>
                 @endforelse
             </tbody>

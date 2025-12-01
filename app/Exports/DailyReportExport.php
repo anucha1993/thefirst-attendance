@@ -3,15 +3,9 @@
 namespace App\Exports;
 
 use App\Models\Trip;
-use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\WithTitle;
-use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 
-class DailyReportExport implements FromCollection, WithHeadings, WithMapping, WithTitle, WithStyles, ShouldAutoSize
+class DailyReportExport implements WithMultipleSheets
 {
     protected $date;
 
@@ -20,13 +14,60 @@ class DailyReportExport implements FromCollection, WithHeadings, WithMapping, Wi
         $this->date = $date;
     }
 
-    public function collection()
+    public function sheets(): array
     {
-        return Trip::whereDate('started_at', $this->date)
+        $sheets = [];
+        
+        // Get all trips for the date
+        $trips = Trip::whereDate('started_at', $this->date)
             ->with(['vehicle', 'route.pickupLocation', 'route.dropoffLocation', 'driver', 'attendanceRecords.employee'])
             ->withCount('attendanceRecords')
             ->orderBy('started_at')
             ->get();
+
+        // Group trips by transport company
+        $groupedTrips = $trips->groupBy(function ($trip) {
+            return $trip->vehicle->transport_company ?? 'ไม่ระบุบริษัท';
+        });
+
+        // Create a sheet for each transport company
+        foreach ($groupedTrips as $companyName => $companyTrips) {
+            $sheets[] = new DailyReportByCompanySheet($companyTrips, $companyName, $this->date);
+        }
+
+        // If no trips found, create a summary sheet
+        if (empty($sheets)) {
+            $sheets[] = new DailyReportByCompanySheet(collect(), 'ไม่มีข้อมูล', $this->date);
+        }
+
+        return $sheets;
+    }
+}
+
+use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\WithTitle;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+
+class DailyReportByCompanySheet implements FromCollection, WithHeadings, WithMapping, WithTitle, WithStyles, ShouldAutoSize
+{
+    protected $trips;
+    protected $companyName;
+    protected $date;
+
+    public function __construct($trips, $companyName, $date)
+    {
+        $this->trips = $trips;
+        $this->companyName = $companyName;
+        $this->date = $date;
+    }
+
+    public function collection()
+    {
+        return $this->trips;
     }
 
     public function headings(): array
@@ -41,6 +82,7 @@ class DailyReportExport implements FromCollection, WithHeadings, WithMapping, Wi
             'จุดส่ง',
             'ป้ายทะเบียน',
             'รุ่นรถ',
+            'บริษัทขนส่ง',
             'คนขับ',
             'จำนวนผู้โดยสาร',
             'รายชื่อผู้โดยสาร',
@@ -71,6 +113,7 @@ class DailyReportExport implements FromCollection, WithHeadings, WithMapping, Wi
             $trip->route->dropoffLocation->name,
             $trip->vehicle->license_plate,
             $trip->vehicle->vehicle_model,
+            $trip->vehicle->transport_company ?? '-',
             $trip->driver->name,
             $passengers->count(),
             $passengerNames,
@@ -85,7 +128,9 @@ class DailyReportExport implements FromCollection, WithHeadings, WithMapping, Wi
 
     public function title(): string
     {
-        return 'รายงานรายวัน ' . date('d/m/Y', strtotime($this->date));
+        // Clean sheet name for Excel compatibility (max 31 chars, no special chars)
+        $cleanName = preg_replace('/[\\\\\/\?\*\:\[\]]/', '', $this->companyName);
+        return mb_substr($cleanName, 0, 31);
     }
 
     public function styles(Worksheet $sheet)

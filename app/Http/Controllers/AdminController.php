@@ -173,6 +173,7 @@ class AdminController extends Controller
         $validated = $request->validate([
             'license_plate' => 'required|string|unique:vehicles|max:20',
             'vehicle_model' => 'nullable|string|max:255',
+            'transport_company' => 'nullable|string|max:255',
             'capacity' => 'required|integer|min:1',
             'status' => 'required|in:active,inactive,maintenance',
             'description' => 'nullable|string',
@@ -194,6 +195,7 @@ class AdminController extends Controller
         $validated = $request->validate([
             'license_plate' => 'required|string|unique:vehicles,license_plate,' . $vehicle->id . '|max:20',
             'vehicle_model' => 'nullable|string|max:255',
+            'transport_company' => 'nullable|string|max:255',
             'capacity' => 'required|integer|min:1',
             'status' => 'required|in:active,inactive,maintenance',
             'description' => 'nullable|string',

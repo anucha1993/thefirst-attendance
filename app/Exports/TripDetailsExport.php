@@ -73,7 +73,10 @@ class TripDetailsExport implements FromCollection, WithHeadings, WithMapping, Wi
 
     public function title(): string
     {
-        return 'รอบ #' . $this->trip->id;
+        $companyName = 'ขนส่ง-'.$this->trip->vehicle->transport_company ?? 'ไม่ระบุบริษัท';
+        // Clean sheet name for Excel compatibility (max 31 chars, no special chars)
+        $cleanName = preg_replace('/[\\\\\/\?\*\:\[\]]/', '', $companyName);
+        return mb_substr($cleanName, 0, 31);
     }
 
     public function styles(Worksheet $sheet)
